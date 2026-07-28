@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+* SQLite support via `localize_icu`, a bundled SQLite loadable extension that registers ICU collations under the same names PostgreSQL uses. The same locale sorts identically on both databases.
+
+* `Localize.Ecto.SQLite3` provides `collate/1,2`, `lower/1,2`, `upper/1,2` and `initcap/1,2` for SQLite. BCP 47 tailorings such as `-u-co-phonebk` need no migration; collations are registered on demand.
+
+* `Localize.Ecto.SQLite3.Extension` locates the compiled extension for the `:load_extensions` option of Exqlite and `Ecto.Adapters.SQLite3`.
+
+* `Localize.Ecto.Postgres` names the PostgreSQL macros explicitly, alongside the new SQLite module.
+
+### Changed
+
+* The SQLite extension is an opt-in build (`config :localize_ecto, :sqlite_icu, true`, or `LOCALIZE_ECTO_SQLITE_ICU=true`). Without it the package stays pure Elixir and PostgreSQL users are unaffected.
+
+* Query macros emit Ecto's `identifier/1` rather than the deprecated `literal/1`. The generated SQL is unchanged.
+
 ## [0.3.0] - 2026-07-23
 
 ### Added

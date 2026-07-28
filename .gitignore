@@ -22,3 +22,10 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 localize_ecto-*.tar
 
+# Build artifacts of the localize_icu SQLite extension. The sources in
+# c_src/ are checked in and shipped; what the compiler produces is not.
+/c_src/*.o
+/priv/localize_icu.so
+/priv/localize_icu.dylib
+/priv/localize_icu.dll
+

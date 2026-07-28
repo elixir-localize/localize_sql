@@ -12,6 +12,10 @@ defmodule LocalizeEcto.MixProject do
       source_url: @source_url,
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: maybe_elixir_make() ++ Mix.compilers(),
+      make_makefile: "c_src/Makefile",
+      make_targets: ["all"],
+      make_clean: ["clean"],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
@@ -26,8 +30,9 @@ defmodule LocalizeEcto.MixProject do
   end
 
   def description do
-    "Locale-aware PostgreSQL ICU collation for Ecto queries: COLLATE query expressions " <>
-      "resolved from Localize language tags, and migration helpers for creating collations."
+    "Locale-aware ICU collation for Ecto queries on PostgreSQL and SQLite: COLLATE query " <>
+      "expressions resolved from Localize language tags, migration helpers for creating " <>
+      "collations, and an ICU collation extension for SQLite."
   end
 
   def application do
@@ -45,9 +50,16 @@ defmodule LocalizeEcto.MixProject do
         "Readme" => "#{@source_url}/blob/v#{@version}/README.md",
         "Changelog" => "#{@source_url}/blob/v#{@version}/CHANGELOG.md"
       },
+      # Listed file by file rather than by directory so that a local
+      # build of the SQLite extension — object files in c_src, the
+      # shared library in priv — cannot be published by accident.
       files: [
         "lib",
-        "priv",
+        "priv/localize_ecto",
+        "c_src/localize_icu.c",
+        "c_src/sqlite3.h",
+        "c_src/sqlite3ext.h",
+        "c_src/Makefile",
         "mix.exs",
         "README*",
         "CHANGELOG*",
@@ -65,6 +77,7 @@ defmodule LocalizeEcto.MixProject do
         "README.md",
         "guides/using_localize_ecto.md",
         "guides/collations_in_postgres.md",
+        "guides/collations_in_sqlite.md",
         "CHANGELOG.md",
         "LICENSE.md"
       ],
@@ -78,12 +91,35 @@ defmodule LocalizeEcto.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
+  # The SQLite ICU extension is opt-in: it needs a C toolchain and the
+  # ICU development libraries, which PostgreSQL-only users have no
+  # reason to install. Enable it with the LOCALIZE_ECTO_SQLITE_ICU=true
+  # environment variable or by setting
+  # `config :localize_ecto, :sqlite_icu, true` in config.exs. The config
+  # key must be in config.exs, not runtime.exs, because it is read at
+  # compile time to decide whether to include the :elixir_make compiler.
+  defp maybe_elixir_make do
+    if sqlite_icu_enabled?() do
+      [:elixir_make]
+    else
+      []
+    end
+  end
+
+  defp sqlite_icu_enabled? do
+    String.downcase(System.get_env("LOCALIZE_ECTO_SQLITE_ICU", "false")) == "true" ||
+      Application.get_env(:localize_ecto, :sqlite_icu, false) == true
+  end
+
   defp deps do
     [
       {:ecto, "~> 3.12"},
       {:localize, "~> 1.0-rc.1"},
       {:ecto_sql, "~> 3.12", optional: true},
+      {:elixir_make, "~> 0.8", optional: true, runtime: false},
       {:postgrex, "~> 0.20", only: [:dev, :test]},
+      {:exqlite, "~> 0.35", only: [:dev, :test]},
+      {:ecto_sqlite3, "~> 0.21", only: [:dev, :test]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: [:dev, :release], runtime: false}

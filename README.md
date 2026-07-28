@@ -1,6 +1,6 @@
 # Localize Ecto
 
-Locale-aware PostgreSQL collation for [Ecto](https://hexdocs.pm/ecto) queries. `localize_ecto` resolves a [Localize](https://hexdocs.pm/localize) language tag to the best matching PostgreSQL ICU collation and applies it with a `COLLATE` clause, so query results sort and compare according to the conventions of the user's locale.
+Locale-aware ICU collation for [Ecto](https://hexdocs.pm/ecto) queries on PostgreSQL and SQLite. `localize_ecto` resolves a [Localize](https://hexdocs.pm/localize) language tag to the best matching ICU collation and applies it with a `COLLATE` clause, so query results sort and compare according to the conventions of the user's locale.
 
 ```elixir
 import Ecto.Query
@@ -18,6 +18,8 @@ from p in Product, where: collate(p.name < "münchen", "de")
 # Use a collation created in a migration, by name
 from p in Product, order_by: collate(p.name, collation: "german_phonebook")
 ```
+
+The examples above are PostgreSQL. `Localize.Ecto` exposes the PostgreSQL macros directly; for SQLite, import [Localize.Ecto.SQLite3](https://hexdocs.pm/localize_ecto/Localize.Ecto.SQLite3.html) instead — see [SQLite](#sqlite) below.
 
 Locale resolution uses the [CLDR Language Matching](https://www.unicode.org/reports/tr35/tr35.html#LanguageMatching) algorithm, so any valid locale finds its best available collation — `"zh-TW"` resolves to `zh-Hant-x-icu`, `"de-DE"` to `de-x-icu`, and an unknown locale falls back gracefully. Locales that carry a BCP 47 collation type, such as `de-u-co-phonebk` (German phonebook order), resolve to collations you create once in a migration with [Localize.Ecto.Migration.create_collation/2](https://hexdocs.pm/localize_ecto/Localize.Ecto.Migration.html#create_collation/2).
 
@@ -70,9 +72,36 @@ def deps do
 end
 ```
 
-## PostgreSQL only
+## SQLite
 
-This library supports PostgreSQL only. It emits `COLLATE` clauses referencing the ICU collations that PostgreSQL imports at `initdb` time, and its migration helpers run PostgreSQL's `CREATE COLLATION` with the ICU provider. Other databases either lack ICU collations, name them differently, or do not support `COLLATE` expressions in the same form.
+SQLite has no ICU collations of its own, so `localize_ecto` ships one: `localize_icu`, a SQLite loadable extension that registers ICU collations under the same names PostgreSQL uses. The same locale resolves to the same collation name and produces the same ordering on either database, so a query ported between them sorts identically — the test suite asserts this for a range of languages and tailorings.
+
+Install ICU (`brew install icu4c`, or `apt-get install libicu-dev`), enable the build in `config/config.exs`, and load the extension on every connection:
+
+```elixir
+# config/config.exs — read at compile time, so not runtime.exs
+config :localize_ecto, :sqlite_icu, true
+
+# config/runtime.exs
+config :my_app, MyApp.Repo,
+  load_extensions: Localize.Ecto.SQLite3.Extension.load_extensions()
+```
+
+Then import [Localize.Ecto.SQLite3](https://hexdocs.pm/localize_ecto/Localize.Ecto.SQLite3.html) in place of `Localize.Ecto`:
+
+```elixir
+import Ecto.Query
+import Localize.Ecto.SQLite3
+
+from p in Product, order_by: collate(p.name, "sv")
+
+# No migration needed: SQLite collations are registered on demand
+from p in Product, order_by: collate(p.name, "de-u-co-phonebk")
+```
+
+Collations are built the first time a query names one, so unlike PostgreSQL the BCP 47 tailorings — `-u-co-phonebk`, `-u-kn-true`, `-u-ks-level1` — need no `CREATE COLLATION` migration. The build is opt-in: without it `localize_ecto` stays a pure-Elixir package needing no C toolchain or ICU, and PostgreSQL users are unaffected.
+
+One consequence to weigh before indexing with an ICU collation: an index that names a collation makes the database unreadable by any connection that has not loaded the extension, including the `sqlite3` CLI. The [Collations in SQLite](https://hexdocs.pm/localize_ecto/collations_in_sqlite.html) guide covers this, the case mapping differences, and what does not port from PostgreSQL.
 
 ## Deterministic collations and Unicode normalization
 
@@ -110,6 +139,8 @@ If a PostgreSQL upgrade links a newer ICU library whose collation data changed �
 * [Using Localize Ecto](https://hexdocs.pm/localize_ecto/using_localize_ecto.html) — the `collate/1,2` macros, locale resolution, and migrations.
 
 * [Collations in PostgreSQL](https://hexdocs.pm/localize_ecto/collations_in_postgres.html) — how PostgreSQL collation works, choosing a database default, and how ICU collations relate to Localize.
+
+* [Collations in SQLite](https://hexdocs.pm/localize_ecto/collations_in_sqlite.html) — the `localize_icu` extension, on-demand collation registration, and the trade-offs of indexing with an ICU collation.
 
 ## License
 

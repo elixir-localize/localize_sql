@@ -2,6 +2,8 @@
 
 This guide covers the day-to-day API: the `collate/1,2` query macros, how locales resolve to PostgreSQL collations, and how to create collations that PostgreSQL does not provide out of the box. For background on PostgreSQL collation itself, see [Collations in PostgreSQL](https://hexdocs.pm/localize_ecto/collations_in_postgres.html).
 
+The examples here are PostgreSQL. Everything in the first four sections applies unchanged to SQLite by importing [Localize.Ecto.SQLite3](https://hexdocs.pm/localize_ecto/Localize.Ecto.SQLite3.html) instead — the same locale resolves to the same collation name on both databases. See [Collations in SQLite](https://hexdocs.pm/localize_ecto/collations_in_sqlite.html) for the setup and the differences, the largest being that SQLite needs no migration for the collation types covered below.
+
 ## Setup
 
 Import `Localize.Ecto` wherever you build queries, alongside `Ecto.Query`:
@@ -10,6 +12,8 @@ Import `Localize.Ecto` wherever you build queries, alongside `Ecto.Query`:
 import Ecto.Query
 import Localize.Ecto
 ```
+
+On SQLite, import `Localize.Ecto.SQLite3` instead, and load the `localize_icu` extension as described in [Collations in SQLite](https://hexdocs.pm/localize_ecto/collations_in_sqlite.html).
 
 ## Collating a query expression
 

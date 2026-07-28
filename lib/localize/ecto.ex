@@ -1,19 +1,32 @@
 defmodule Localize.Ecto do
   @moduledoc """
-  Locale-aware query expressions for Ecto on PostgreSQL.
+  Locale-aware query expressions for Ecto.
 
-  The primary public API is the `collate/1` and `collate/2` macros,
-  which apply a PostgreSQL `COLLATE` clause to a query expression — or
-  to a comparison between two expressions — using the ICU collation
-  that best matches a locale. The collation name is resolved by
-  `Localize.Ecto.Collation.resolve!/1` and emitted as a quoted
-  identifier via Ecto's `literal/1` fragment, so it is never
-  interpolated into the SQL as text.
+  Text sorts differently in different languages, and neither PostgreSQL
+  nor SQLite sorts linguistically unless a query asks it to. This
+  library resolves a [Localize](https://hexdocs.pm/localize) language
+  tag to an ICU collation and applies it to a query expression, so that
+  ordering, comparison and case mapping follow the user's locale.
 
-  Import this module (or `import Localize.Ecto, only: [collate: 1, collate: 2]`)
-  alongside `Ecto.Query` and use `collate/1,2` anywhere a query
-  expression is accepted — `order_by`, `select`, `where`, `distinct`
-  and so on:
+  There is one module per database, because Ecto requires the SQL of a
+  fragment to be a compile-time literal and the two databases do not
+  spell everything the same way:
+
+  * `Localize.Ecto.Postgres` — PostgreSQL. `collate/1,2`, `lower/1,2`,
+    `upper/1,2`, `initcap/1,2`, plus `at_time_zone/2` and `ts_match/2,3`.
+
+  * `Localize.Ecto.SQLite3` — SQLite, via the `localize_icu` extension
+    this library ships. `collate/1,2`, `lower/1,2`, `upper/1,2` and
+    `initcap/1,2`.
+
+  Both resolve collation names through the same
+  `Localize.Ecto.Collation`, so a locale produces the same name —
+  `"de-x-icu"`, `"sv-x-icu"`, `"de-u-co-phonebk-x-icu"` — on either
+  database and a query written for one sorts identically on the other.
+
+  This module exposes the PostgreSQL macros directly, so existing code
+  that imports it keeps working and PostgreSQL users need not think
+  about the split:
 
       import Ecto.Query
       import Localize.Ecto
@@ -35,31 +48,22 @@ defmodule Localize.Ecto do
       # Use a collation created in a migration, by name
       from p in Product, order_by: collate(p.name, collation: "german_phonebook")
 
+  For SQLite, import `Localize.Ecto.SQLite3` instead. An application
+  talking to both databases imports each where it needs it.
+
   Collations for locales carrying a BCP 47 collation type, such as
   `de-u-co-phonebk`, are not preloaded by PostgreSQL. Create them once
   in a migration with `Localize.Ecto.Migration.create_collation/2` and
-  they resolve automatically thereafter.
+  they resolve automatically thereafter. SQLite needs no such migration.
 
   """
 
-  @comparison_operators [:<, :>, :<=, :>=, :==, :!=]
+  alias Localize.Ecto.Builder
 
   @doc """
   Applies a `COLLATE` clause for the current locale.
 
-  The collation is resolved from `Localize.get_locale/0` at the time
-  the query is built.
-
-  ### Arguments
-
-  * `expression` is any Ecto query expression that evaluates to a
-    string value, or a comparison (`<`, `<=`, `>`, `>=`, `==`, `!=`)
-    between two such expressions.
-
-  ### Returns
-
-  * A query fragment `expression COLLATE "collation"`, or for a
-    comparison `left OP right COLLATE "collation"`.
+  See `Localize.Ecto.Postgres.collate/1`.
 
   ### Examples
 
@@ -70,36 +74,13 @@ defmodule Localize.Ecto do
 
   """
   defmacro collate(expression) do
-    build_collate(expression, quote(do: Localize.Ecto.Collation.resolve!()))
+    Builder.collate(expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
   Applies a `COLLATE` clause for the given locale or collation.
 
-  ### Arguments
-
-  * `expression` is any Ecto query expression that evaluates to a
-    string value, or a comparison (`<`, `<=`, `>`, `>=`, `==`, `!=`)
-    between two such expressions.
-
-  * `locale_or_options` is a `t:Localize.LanguageTag.t/0`, any locale
-    identifier accepted by `Localize.validate_locale/1`, or a keyword
-    list of options. A pinned expression (`^locale`) is also accepted,
-    so runtime locale values read naturally in query syntax.
-
-  ### Options
-
-  * `:collation` is a collation name used verbatim, bypassing locale
-    resolution — for example a collation created with
-    `Localize.Ecto.Migration.create_collation/2` under a custom name.
-
-  * Any other options are passed to
-    `Localize.Ecto.Collation.collation_for!/2`.
-
-  ### Returns
-
-  * A query fragment `expression COLLATE "collation"`, or for a
-    comparison `left OP right COLLATE "collation"`.
+  See `Localize.Ecto.Postgres.collate/2`.
 
   ### Examples
 
@@ -115,50 +96,18 @@ defmodule Localize.Ecto do
 
   """
   defmacro collate(expression, locale_or_options) do
-    locale_or_options = unpin(locale_or_options)
+    locale_or_options = Builder.unpin(locale_or_options)
 
-    build_collate(
+    Builder.collate(
       expression,
       quote(do: Localize.Ecto.Collation.resolve!(unquote(locale_or_options)))
     )
   end
 
-  # A comparison collates its right-hand operand; PostgreSQL applies
-  # the collation to the comparison since COLLATE binds tighter than
-  # any operator.
-  defp build_collate({operator, _meta, [left, right]}, resolver)
-       when operator in @comparison_operators do
-    sql = "? #{sql_operator(operator)} ? COLLATE ?"
-
-    quote do
-      fragment(unquote(sql), unquote(left), unquote(right), literal(^unquote(resolver)))
-    end
-  end
-
-  defp build_collate(expression, resolver) do
-    quote do
-      fragment("? COLLATE ?", unquote(expression), literal(^unquote(resolver)))
-    end
-  end
-
-  defp sql_operator(:==), do: "="
-  defp sql_operator(:!=), do: "<>"
-  defp sql_operator(operator), do: Atom.to_string(operator)
-
   @doc """
   Applies PostgreSQL's `AT TIME ZONE` with a validated time zone.
 
-  The zone is canonicalized by `Localize.Ecto.Type.TimeZone.canonicalize!/1` when the query is built, so an alias or BCP 47 short zone identifier is accepted and an unknown zone raises in the application instead of failing on the server.
-
-  ### Arguments
-
-  * `expression` is an Ecto query expression that evaluates to a timestamp.
-
-  * `zone` is a canonical IANA name, a CLDR-known alias, or a BCP 47 short zone identifier. A pinned expression (`^zone`) is also accepted.
-
-  ### Returns
-
-  * A query fragment `expression AT TIME ZONE 'zone'`.
+  See `Localize.Ecto.Postgres.at_time_zone/2`.
 
   ### Examples
 
@@ -169,7 +118,7 @@ defmodule Localize.Ecto do
 
   """
   defmacro at_time_zone(expression, zone) do
-    zone = unpin(zone)
+    zone = Builder.unpin(zone)
 
     quote do
       fragment(
@@ -183,7 +132,7 @@ defmodule Localize.Ecto do
   @doc """
   Locale-aware full-text search match using the current locale.
 
-  See `ts_match/3`.
+  See `Localize.Ecto.Postgres.ts_match/2`.
   """
   defmacro ts_match(expression, query) do
     build_ts_match(expression, query, quote(do: Localize.Ecto.TextSearch.config_for!()))
@@ -192,19 +141,7 @@ defmodule Localize.Ecto do
   @doc """
   Locale-aware full-text search match.
 
-  Expands to `to_tsvector(config, expression) @@ websearch_to_tsquery(config, query)` where `config` is the PostgreSQL text search configuration `Localize.Ecto.TextSearch.config_for!/2` resolves for the locale — `'german'` for `"de-AT"`, `'simple'` for languages PostgreSQL has no stemmer for.
-
-  ### Arguments
-
-  * `expression` is an Ecto query expression that evaluates to the searched text.
-
-  * `query` is the user's search input, in `websearch_to_tsquery` syntax.
-
-  * `locale_or_options` is a locale accepted by `Localize.Ecto.TextSearch.config_for!/2`, or a keyword list with a `:config` option naming a text search configuration directly. A pinned expression (`^locale`) is also accepted.
-
-  ### Returns
-
-  * A boolean query fragment for use in `where`.
+  See `Localize.Ecto.Postgres.ts_match/3`.
 
   ### Examples
 
@@ -215,7 +152,7 @@ defmodule Localize.Ecto do
 
   """
   defmacro ts_match(expression, query, locale_or_options) do
-    locale_or_options = unpin(locale_or_options)
+    locale_or_options = Builder.unpin(locale_or_options)
 
     resolver =
       quote do
@@ -255,26 +192,16 @@ defmodule Localize.Ecto do
   @doc """
   Locale-aware `lower()` using the collation of the current locale.
 
-  See `lower/2`.
+  See `Localize.Ecto.Postgres.lower/1`.
   """
   defmacro lower(expression) do
-    build_case(:lower, expression, quote(do: Localize.Ecto.Collation.resolve!()))
+    Builder.postgres_case(:lower, expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
   Locale-aware `lower()`.
 
-  PostgreSQL's `lower()`, `upper()` and `initcap()` follow the collation of their argument, so the locale determines the case mapping — under a Turkish collation `lower("I")` is the dotless "ı", which the default collation gets wrong.
-
-  ### Arguments
-
-  * `expression` is an Ecto query expression that evaluates to a string.
-
-  * `locale_or_options` is a locale or keyword list as accepted by `collate/2`. A pinned expression (`^locale`) is also accepted.
-
-  ### Returns
-
-  * A query fragment `lower(expression COLLATE "collation")`.
+  See `Localize.Ecto.Postgres.lower/2`.
 
   ### Examples
 
@@ -285,9 +212,9 @@ defmodule Localize.Ecto do
 
   """
   defmacro lower(expression, locale_or_options) do
-    locale_or_options = unpin(locale_or_options)
+    locale_or_options = Builder.unpin(locale_or_options)
 
-    build_case(
+    Builder.postgres_case(
       :lower,
       expression,
       quote(do: Localize.Ecto.Collation.resolve!(unquote(locale_or_options)))
@@ -297,19 +224,21 @@ defmodule Localize.Ecto do
   @doc """
   Locale-aware `upper()` using the collation of the current locale.
 
-  See `lower/2`.
+  See `Localize.Ecto.Postgres.upper/1`.
   """
   defmacro upper(expression) do
-    build_case(:upper, expression, quote(do: Localize.Ecto.Collation.resolve!()))
+    Builder.postgres_case(:upper, expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
-  Locale-aware `upper()`. See `lower/2` for the arguments and semantics.
+  Locale-aware `upper()`.
+
+  See `Localize.Ecto.Postgres.upper/2`.
   """
   defmacro upper(expression, locale_or_options) do
-    locale_or_options = unpin(locale_or_options)
+    locale_or_options = Builder.unpin(locale_or_options)
 
-    build_case(
+    Builder.postgres_case(
       :upper,
       expression,
       quote(do: Localize.Ecto.Collation.resolve!(unquote(locale_or_options)))
@@ -319,36 +248,24 @@ defmodule Localize.Ecto do
   @doc """
   Locale-aware `initcap()` using the collation of the current locale.
 
-  See `lower/2`.
+  See `Localize.Ecto.Postgres.initcap/1`.
   """
   defmacro initcap(expression) do
-    build_case(:initcap, expression, quote(do: Localize.Ecto.Collation.resolve!()))
+    Builder.postgres_case(:initcap, expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
-  Locale-aware `initcap()`. See `lower/2` for the arguments and semantics.
+  Locale-aware `initcap()`.
+
+  See `Localize.Ecto.Postgres.initcap/2`.
   """
   defmacro initcap(expression, locale_or_options) do
-    locale_or_options = unpin(locale_or_options)
+    locale_or_options = Builder.unpin(locale_or_options)
 
-    build_case(
+    Builder.postgres_case(
       :initcap,
       expression,
       quote(do: Localize.Ecto.Collation.resolve!(unquote(locale_or_options)))
     )
   end
-
-  defp build_case(function, expression, resolver) do
-    sql = "#{function}(? COLLATE ?)"
-
-    quote do
-      fragment(unquote(sql), unquote(expression), literal(^unquote(resolver)))
-    end
-  end
-
-  # The locale argument is evaluated as an ordinary expression, not as a
-  # query expression, so a pin is not required. Accept one anyway since
-  # pinning runtime values is idiomatic inside Ecto queries.
-  defp unpin({:^, _meta, [expression]}), do: expression
-  defp unpin(expression), do: expression
 end
