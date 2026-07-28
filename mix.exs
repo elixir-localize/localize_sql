@@ -24,8 +24,12 @@ defmodule LocalizeEcto.MixProject do
       dialyzer: [plt_add_apps: [:mix, :ecto_sql]],
       # The audit mix task is CLI glue over `Localize.Ecto.Audit`
       # (which is covered); mix tasks are excluded from coverage
-      # measurement as in the localize repo.
-      test_coverage: [ignore_modules: [~r/^Mix\.Tasks\./]]
+      # measurement as in the localize repo. The test repos are
+      # scaffolding from test/support — coverage measures lib/, and the
+      # SQLite repo is not even started when the extension is absent.
+      test_coverage: [
+        ignore_modules: [~r/^Mix\.Tasks\./, Localize.Ecto.TestRepo, Localize.Ecto.SQLiteTestRepo]
+      ]
     ]
   end
 

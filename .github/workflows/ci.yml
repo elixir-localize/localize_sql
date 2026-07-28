@@ -183,5 +183,46 @@ jobs:
       - name: Verify the extension was built
         run: test -f priv/localize_icu.so
 
+      # test_helper raises when LOCALIZE_ECTO_SQLITE_ICU is set but the
+      # extension cannot be found, so this cannot pass with the SQLite
+      # suites silently excluded.
       - name: Run tests including the SQLite suites
         run: mix test
+
+  # The Makefile has a separate Darwin branch (dylib, -dynamiclib,
+  # keg-only Homebrew ICU) that the Linux job never exercises, and most
+  # users building the extension are on macOS. Build only — service
+  # containers are Linux-only, so there is no PostgreSQL here to run the
+  # parity suite against.
+  sqlite-icu-macos:
+    name: "SQLite ICU extension (macOS build)"
+    runs-on: macos-latest
+
+    env:
+      LOCALIZE_ECTO_SQLITE_ICU: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # pkg-config is already on the macOS runner image; installing it
+      # here risks colliding with Homebrew's pkgconf rename.
+      - name: Install ICU
+        run: brew install icu4c
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.2-otp-29"
+          otp-version: "29"
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Build the extension
+        run: mix compile
+
+      - name: Verify the extension was built and exports its entry point
+        run: |
+          test -f priv/localize_icu.dylib
+          nm -gU priv/localize_icu.dylib | grep -q _sqlite3_localizeicu_init

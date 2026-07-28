@@ -27,6 +27,21 @@ end
 # unless it is present, so the default `mix test` stays pure Elixir.
 sqlite_icu? = Localize.Ecto.SQLite3.Extension.available?()
 
+# When the build was opted into, the extension must be found. Without
+# this check a CI job that builds the extension but cannot locate it
+# afterwards would silently exclude every SQLite test and still report
+# success — the run would be green having tested none of it.
+if not sqlite_icu? and
+     String.downcase(System.get_env("LOCALIZE_ECTO_SQLITE_ICU", "false")) == "true" do
+  raise """
+  LOCALIZE_ECTO_SQLITE_ICU is set, but no localize_icu extension was found at
+  #{Localize.Ecto.SQLite3.Extension.path()}.{so,dylib}
+
+  The SQLite test suites would be silently excluded. Check that the c_src
+  build ran and that ICU is installed.
+  """
+end
+
 if sqlite_icu? do
   sqlite_database = Path.join(System.tmp_dir!(), "localize_ecto_test.sqlite3")
 
