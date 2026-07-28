@@ -20,6 +20,13 @@ defmodule Localize.Ecto.Collation do
   example `de-DE` matching the `de` collation locale — selects an
   identical collator.
 
+  The same names serve SQLite. `Localize.Ecto.SQLite3` resolves through
+  this module too, and the `localize_icu` extension registers exactly
+  these names, so a locale produces the same collation on either
+  database. The list matched against is PostgreSQL's because that is
+  what keeps the two in step — SQLite itself will build any collation
+  ICU can open.
+
   The primary public API is `collation_for/2` and `collation_for!/2`.
 
   """

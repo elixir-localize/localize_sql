@@ -1,7 +1,7 @@
 defmodule LocalizeEcto.MixProject do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "1.0.0-rc.0"
   @source_url "https://github.com/elixir-localize/localize_ecto"
 
   def project do
@@ -114,7 +114,7 @@ defmodule LocalizeEcto.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.12"},
-      {:localize, "~> 1.0-rc.1"},
+      {:localize, "~> 1.0-rc"},
       {:ecto_sql, "~> 3.12", optional: true},
       {:elixir_make, "~> 0.8", optional: true, runtime: false},
       {:postgrex, "~> 0.20", only: [:dev, :test]},

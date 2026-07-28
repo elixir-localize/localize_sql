@@ -29,6 +29,12 @@ if Code.ensure_loaded?(Ecto.Migration) do
     `drop_collation/2`. The SQL they execute is also available from
     `create_collation_sql/2` and `drop_collation_sql/2`.
 
+    `create_collation/2` and `drop_collation/2` are PostgreSQL-only:
+    a SQLite collation is a per-connection runtime registration rather
+    than a schema object, so there is nothing to create and the
+    tailorings above work there with no migration at all. `collated/2`
+    emits valid index syntax for both databases.
+
     """
 
     alias Localize.Ecto.Collation

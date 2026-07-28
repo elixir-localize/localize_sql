@@ -92,6 +92,11 @@ defmodule Localize.Ecto.Audit do
 
   * `nil` when the default collation version matches, or a map with `:collation`, `:stored_version` and `:actual_version`.
 
+  ### Examples
+
+      Localize.Ecto.Audit.database_collation_drift(MyApp.Repo)
+      #=> nil
+
   """
   @spec database_collation_drift(module()) :: map() | nil
   def database_collation_drift(repo) do
@@ -141,6 +146,15 @@ defmodule Localize.Ecto.Audit do
 
   * A map with `:server` (`:postgres`, `:unicode`, `:icu_unicode` — the latter two `nil` before PostgreSQL 17) and `:application` (`:cldr`, `:unicode`). When the server's ICU Unicode version and the application's CLDR-implied Unicode version differ, `:drift?` is `true` — collation results computed in Elixir by `Localize.Collation` may then order edge-case strings differently from the server.
 
+  ### Examples
+
+      Localize.Ecto.Audit.unicode_versions(MyApp.Repo)
+      #=> %{
+      #     server: %{postgres: "17.4", unicode: "15.1", icu_unicode: "16.0"},
+      #     application: %{cldr: "48.2.2", unicode: "16.0"},
+      #     drift?: false
+      #   }
+
   """
   @spec unicode_versions(module()) :: map()
   def unicode_versions(repo) do
@@ -178,6 +192,11 @@ defmodule Localize.Ecto.Audit do
 
   * A map with `:collation_drift`, `:database_collation_drift`, `:unicode_versions`, `:timezone_audit` and `:ok?` — `true` when nothing needs attention.
 
+  ### Examples
+
+      Localize.Ecto.Audit.report(MyApp.Repo).ok?
+      #=> true
+
   """
   @spec report(module()) :: map()
   def report(repo) do
@@ -209,6 +228,11 @@ defmodule Localize.Ecto.Audit do
   ### Returns
 
   * A map with `:unknown_to_server` (canonical CLDR zones missing from `pg_timezone_names`) and `:unknown_to_application` (server zones absent from the CLDR inventory, excluding the `posix/`, `Etc/` and abbreviation-style entries PostgreSQL adds).
+
+  ### Examples
+
+      Localize.Ecto.Audit.timezone_audit(MyApp.Repo).unknown_to_server
+      #=> []
 
   """
   @spec timezone_audit(module()) :: map()

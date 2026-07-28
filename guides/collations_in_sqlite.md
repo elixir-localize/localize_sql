@@ -72,8 +72,11 @@ The extension therefore registers two-argument `upper(X, locale)`, `lower(X, loc
 `Localize.Ecto.SQLite3` expands to these automatically, and keeps PostgreSQL's `initcap` name so queries port unchanged:
 
 ```elixir
-from p in Product, select: lower(p.name, "tr")      # lower(name, 'tr-x-icu')
-from p in Product, select: initcap(p.name, "nl")    # title(name, 'nl-x-icu')
+# Calls lower(name, ?) with the resolved collation name bound as the parameter
+from p in Product, select: lower(p.name, "tr")
+
+# initcap keeps its PostgreSQL name and calls the extension's title(name, ?)
+from p in Product, select: initcap(p.name, "nl")
 ```
 
 ## Strength, case and accent insensitivity
@@ -86,6 +89,14 @@ create unique_index("users", [collated(:email, "und-u-ks-level1")])
 ```
 
 This is one place SQLite is simpler than PostgreSQL, where the same behaviour needs a nondeterministic collation that then cannot be used with `LIKE` or `pg_trgm`. SQLite's `LIKE` ignores collations entirely, so it is unaffected either way.
+
+## Canonical equivalence: the one place the two databases disagree
+
+The absence of deterministic collations has a consequence beyond convenience. A comparison here returns exactly what ICU says, and ICU treats canonically equivalent strings as equal — so `café` written as `caf` + U+00E9 and `café` written as `cafe` + combining U+0301 compare **equal** on SQLite. PostgreSQL's deterministic collations break that tie bytewise afterwards and report the same pair as **unequal**.
+
+Ordering is unaffected: both databases sort the two forms adjacently, which is why the ordering parity the test suite asserts still holds. What differs is equality, and everything built on it — `DISTINCT`, `GROUP BY`, joins on text keys, and unique indexes.
+
+If you rely on the two databases agreeing about equality as well as order, normalize text on write. [String.normalize/2](https://hexdocs.pm/elixir/String.html#normalize/2) with `:nfc` is the usual choice, and it makes the difference disappear on both. It is worth doing regardless of which database you use.
 
 ## ICU versions
 

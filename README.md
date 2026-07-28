@@ -56,8 +56,8 @@ Audit for MyApp.Repo
   Collation versions: no drift
   Database default collation: no drift
   Server: PostgreSQL 17.4, Unicode 15.1, ICU Unicode 16.0
-  Application: CLDR 48.0.0, Unicode 16.0
-  Time zones: all application zones known to the server (14 server-only zones)
+  Application: CLDR 48.2.2, Unicode 16.0
+  Time zones: all application zones known to the server (100 server-only zones)
 ```
 
 ## Installation
@@ -67,7 +67,7 @@ Add `localize_ecto` to your dependencies:
 ```elixir
 def deps do
   [
-    {:localize_ecto, "~> 0.3.0"}
+    {:localize_ecto, "~> 1.0-rc"}
   ]
 end
 ```
@@ -105,9 +105,11 @@ One consequence to weigh before indexing with an ICU collation: an index that na
 
 ## Deterministic collations and Unicode normalization
 
-The collations this library resolves to are deterministic, which is PostgreSQL's default. A deterministic collation never treats two strings as equal unless they are byte-for-byte identical: comparison first uses the linguistic collation order, then breaks ties bytewise. This has a practical consequence for Unicode text that is not normalized. Canonically equivalent strings in different normalization forms — for example `é` as the single code point U+00E9 versus `e` followed by combining U+0301 — will sort adjacently but will never compare equal, so equality tests, `DISTINCT`, `GROUP BY`, joins on text keys, and unique indexes all see them as different values.
+On PostgreSQL, the collations this library resolves to are deterministic, which is PostgreSQL's default. SQLite has no such concept and behaves differently here — see the end of this section. A deterministic collation never treats two strings as equal unless they are byte-for-byte identical: comparison first uses the linguistic collation order, then breaks ties bytewise. This has a practical consequence for Unicode text that is not normalized. Canonically equivalent strings in different normalization forms — for example `é` as the single code point U+00E9 versus `e` followed by combining U+0301 — will sort adjacently but will never compare equal, so equality tests, `DISTINCT`, `GROUP BY`, joins on text keys, and unique indexes all see them as different values.
 
 To get expected results, normalize text (NFC is the usual choice) before writing it to the database. In Elixir use [String.normalize/2](https://hexdocs.pm/elixir/String.html#normalize/2); in PostgreSQL the [normalize](https://www.postgresql.org/docs/current/functions-string.html) function and `IS NFC NORMALIZED` predicate are available for checking or repairing existing data. Alternatively, PostgreSQL supports nondeterministic collations that do compare canonically equivalent strings as equal — [Localize.Ecto.Migration.create_collation/2](https://hexdocs.pm/localize_ecto/Localize.Ecto.Migration.html#create_collation/2) can create one with `deterministic: false` — but they cannot be used with `LIKE` or pattern matching and are slower.
+
+SQLite behaves as PostgreSQL's nondeterministic collations do, and it is the one place the two databases disagree. SQLite has no deterministic/nondeterministic distinction, so a comparison returns exactly what ICU says — and ICU treats canonically equivalent strings as equal. The NFC and NFD forms of `café` compare **equal** on SQLite and **unequal** on PostgreSQL. Ordering is unaffected on both, which is why sorting still agrees; it is equality, `DISTINCT`, `GROUP BY` and unique indexes that differ. Normalizing on write makes the question moot on either database, and is worth doing regardless.
 
 ## Available collations vary between PostgreSQL releases
 
@@ -146,4 +148,4 @@ If a PostgreSQL upgrade links a newer ICU library whose collation data changed �
 
 Copyright 2026 Kip Cole
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/elixir-localize/localize_ecto/blob/v0.3.0/LICENSE.md).
+Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/elixir-localize/localize_ecto/blob/v1.0.0-rc.0/LICENSE.md).

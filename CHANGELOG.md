@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0-rc.0] - 2026-07-28
+
+The 1.0 release candidate. `localize_ecto` now supports SQLite as well as PostgreSQL, with the same locale resolving to the same collation on both.
 
 ### Added
 
@@ -15,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 * `Localize.Ecto.SQLite3.Extension` locates the compiled extension for the `:load_extensions` option of Exqlite and `Ecto.Adapters.SQLite3`.
 
 * `Localize.Ecto.Postgres` names the PostgreSQL macros explicitly, alongside the new SQLite module.
+
+### Notes
+
+* SQLite compares canonically equivalent strings (the NFC and NFD forms of `café`) as equal where PostgreSQL, using deterministic collations, compares them as unequal. Ordering agrees on both; normalizing on write removes the difference.
 
 ### Changed
 

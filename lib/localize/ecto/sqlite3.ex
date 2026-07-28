@@ -57,6 +57,14 @@ defmodule Localize.Ecto.SQLite3 do
     described above. `Localize.Ecto.Migration.collated/2` emits valid
     SQLite index syntax and works on both.
 
+  * Canonically equivalent strings compare *equal* here and *unequal* on
+    PostgreSQL. SQLite has no deterministic collations, so a comparison
+    returns what ICU says, and ICU considers the NFC and NFD forms of
+    `café` the same string; PostgreSQL breaks that tie bytewise.
+    Ordering agrees on both — it is equality, `DISTINCT`, `GROUP BY` and
+    unique indexes that differ. Normalizing on write removes the
+    difference.
+
   """
 
   alias Localize.Ecto.Builder

@@ -133,6 +133,53 @@ defmodule Localize.Ecto.ParityTest do
     end
   end
 
+  describe "canonical equivalence differs, ordering does not" do
+    # The one documented behavioural difference between the two. ICU
+    # treats canonically equivalent strings as equal; PostgreSQL's
+    # deterministic collations then break the tie bytewise, SQLite has
+    # no such concept and reports ICU's answer. Ordering is unaffected,
+    # which is why the ordering parity above still holds.
+    test "PostgreSQL reports them unequal and SQLite reports them equal" do
+      nfc = String.normalize("café", :nfc)
+      nfd = String.normalize("café", :nfd)
+
+      postgres =
+        TestRepo.query!("SELECT $1::text = $2::text COLLATE \"fr-x-icu\"", [nfc, nfd])
+
+      sqlite = SQLiteTestRepo.query!("SELECT ? = ? COLLATE \"fr-x-icu\"", [nfc, nfd])
+
+      assert postgres.rows == [[false]]
+      assert sqlite.rows == [[1]]
+    end
+
+    test "both order the two forms adjacently" do
+      nfc = String.normalize("café", :nfc)
+      nfd = String.normalize("café", :nfd)
+
+      for repo <- [TestRepo, SQLiteTestRepo] do
+        repo.query!("CREATE TABLE IF NOT EXISTS norm_words (word text)")
+        repo.query!("DELETE FROM norm_words")
+      end
+
+      for word <- ["cafz", nfd, nfc, "cafa"] do
+        TestRepo.query!("INSERT INTO norm_words (word) VALUES ($1)", [word])
+        SQLiteTestRepo.query!("INSERT INTO norm_words (word) VALUES (?)", [word])
+      end
+
+      postgres =
+        TestRepo.query!(~s|SELECT word FROM norm_words ORDER BY word COLLATE "fr-x-icu"|).rows
+
+      sqlite =
+        SQLiteTestRepo.query!(~s|SELECT word FROM norm_words ORDER BY word COLLATE "fr-x-icu"|).rows
+
+      # The two café forms occupy positions 2 and 3 in both, whichever
+      # order the tie-break puts them in.
+      assert [["cafa"], _, _, ["cafz"]] = postgres
+      assert [["cafa"], _, _, ["cafz"]] = sqlite
+      assert Enum.sort(postgres) == Enum.sort(sqlite)
+    end
+  end
+
   describe "name parity" do
     test "every plain locale resolves to a collation PostgreSQL preloaded" do
       preloaded =

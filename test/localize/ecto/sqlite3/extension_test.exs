@@ -121,6 +121,31 @@ defmodule Localize.Ecto.SQLite3.ExtensionTest do
     end
   end
 
+  describe "canonical equivalence" do
+    # SQLite has no notion of a deterministic collation, so a comparison
+    # returns exactly what ICU says, and ICU treats canonically
+    # equivalent strings as equal. PostgreSQL's deterministic collations
+    # break the tie bytewise afterwards and report them as different.
+    # Ordering agrees on both; equality does not. See the note in
+    # guides/collations_in_sqlite.md.
+    test "canonically equivalent strings compare equal at any strength", %{db: db} do
+      nfc = String.normalize("café", :nfc)
+      nfd = String.normalize("café", :nfd)
+
+      refute nfc == nfd
+
+      assert query(db, ~s|SELECT '#{nfc}' = '#{nfd}' COLLATE "fr-x-icu"|) == [[1]]
+      assert query(db, ~s|SELECT '#{nfc}' = '#{nfd}' COLLATE "und-x-icu"|) == [[1]]
+    end
+
+    test "they still sort adjacently, so ordering is unaffected", %{db: db} do
+      nfc = String.normalize("café", :nfc)
+      nfd = String.normalize("café", :nfd)
+
+      assert sorted(db, ["cafz", nfd, nfc, "cafa"], "fr-x-icu") == ["cafa", nfd, nfc, "cafz"]
+    end
+  end
+
   describe "ICU case mapping" do
     test "upper/2 and lower/2 follow the locale", %{db: db} do
       assert query(db, "SELECT upper('i', 'tr'), upper('i', 'en')") == [["İ", "I"]]
