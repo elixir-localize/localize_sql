@@ -2,17 +2,17 @@
 # settings follow the libpq environment variables so CI (service
 # container with a password) and local development (trust auth) both
 # work without configuration changes.
-Application.put_env(:localize_ecto, Localize.Ecto.TestRepo,
+Application.put_env(:localize_sql, Localize.Ecto.TestRepo,
   hostname: System.get_env("PGHOST", "localhost"),
   port: String.to_integer(System.get_env("PGPORT", "5432")),
   username: System.get_env("PGUSER", System.get_env("USER")),
   password: System.get_env("PGPASSWORD"),
-  database: "localize_ecto_test",
+  database: "localize_sql_test",
   pool_size: 2,
   log: false
 )
 
-repo_config = Application.get_env(:localize_ecto, Localize.Ecto.TestRepo)
+repo_config = Application.get_env(:localize_sql, Localize.Ecto.TestRepo)
 
 case Ecto.Adapters.Postgres.storage_up(repo_config) do
   :ok -> :ok
@@ -23,7 +23,7 @@ end
 {:ok, _} = Localize.Ecto.TestRepo.start_link()
 
 # The SQLite suites need the localize_icu extension, which is an opt-in
-# build (LOCALIZE_ECTO_SQLITE_ICU=true). Tagged tests are excluded
+# build (LOCALIZE_SQL_SQLITE_ICU=true). Tagged tests are excluded
 # unless it is present, so the default `mix test` stays pure Elixir.
 sqlite_icu? = Localize.Ecto.SQLite3.Extension.available?()
 
@@ -32,9 +32,9 @@ sqlite_icu? = Localize.Ecto.SQLite3.Extension.available?()
 # afterwards would silently exclude every SQLite test and still report
 # success — the run would be green having tested none of it.
 if not sqlite_icu? and
-     String.downcase(System.get_env("LOCALIZE_ECTO_SQLITE_ICU", "false")) == "true" do
+     String.downcase(System.get_env("LOCALIZE_SQL_SQLITE_ICU", "false")) == "true" do
   raise """
-  LOCALIZE_ECTO_SQLITE_ICU is set, but no localize_icu extension was found at
+  LOCALIZE_SQL_SQLITE_ICU is set, but no localize_icu extension was found at
   #{Localize.Ecto.SQLite3.Extension.path()}.{so,dylib}
 
   The SQLite test suites would be silently excluded. Check that the c_src
@@ -43,11 +43,11 @@ if not sqlite_icu? and
 end
 
 if sqlite_icu? do
-  sqlite_database = Path.join(System.tmp_dir!(), "localize_ecto_test.sqlite3")
+  sqlite_database = Path.join(System.tmp_dir!(), "localize_sql_test.sqlite3")
 
   # A single connection in WAL mode: several pooled connections racing
   # to create the same new database file lock each other out.
-  Application.put_env(:localize_ecto, Localize.Ecto.SQLiteTestRepo,
+  Application.put_env(:localize_sql, Localize.Ecto.SQLiteTestRepo,
     database: sqlite_database,
     load_extensions: Localize.Ecto.SQLite3.Extension.load_extensions(),
     journal_mode: :wal,

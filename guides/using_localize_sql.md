@@ -1,8 +1,8 @@
-# Using Localize Ecto
+# Using Localize SQL
 
-This guide covers the day-to-day API: the `collate/1,2` query macros, how locales resolve to PostgreSQL collations, and how to create collations that PostgreSQL does not provide out of the box. For background on PostgreSQL collation itself, see [Collations in PostgreSQL](https://hexdocs.pm/localize_ecto/collations_in_postgres.html).
+This guide covers the day-to-day API: the `collate/1,2` query macros, how locales resolve to PostgreSQL collations, and how to create collations that PostgreSQL does not provide out of the box. For background on PostgreSQL collation itself, see [Collations in PostgreSQL](https://hexdocs.pm/localize_sql/collations_in_postgres.html).
 
-The examples here are PostgreSQL. Everything in the first four sections applies unchanged to SQLite by importing [Localize.Ecto.SQLite3](https://hexdocs.pm/localize_ecto/Localize.Ecto.SQLite3.html) instead — the same locale resolves to the same collation name on both databases. See [Collations in SQLite](https://hexdocs.pm/localize_ecto/collations_in_sqlite.html) for the setup and the differences, the largest being that SQLite needs no migration for the collation types covered below.
+The examples here are PostgreSQL. Everything in the first four sections applies unchanged to SQLite by importing [Localize.Ecto.SQLite3](https://hexdocs.pm/localize_sql/Localize.Ecto.SQLite3.html) instead — the same locale resolves to the same collation name on both databases. See [Collations in SQLite](https://hexdocs.pm/localize_sql/collations_in_sqlite.html) for the setup and the differences, the largest being that SQLite needs no migration for the collation types covered below.
 
 ## Setup
 
@@ -13,7 +13,7 @@ import Ecto.Query
 import Localize.Ecto
 ```
 
-On SQLite, import `Localize.Ecto.SQLite3` instead, and load the `localize_icu` extension as described in [Collations in SQLite](https://hexdocs.pm/localize_ecto/collations_in_sqlite.html).
+On SQLite, import `Localize.Ecto.SQLite3` instead, and load the `localize_icu` extension as described in [Collations in SQLite](https://hexdocs.pm/localize_sql/collations_in_sqlite.html).
 
 ## Collating a query expression
 
@@ -125,7 +125,7 @@ create_collation("und", strength: :secondary)
 create_collation("en", numeric: true)
 ```
 
-Query-time resolution carries the same `-u-` keywords, so a tailored collation created under its default name is found automatically — `collate(f.name, "en-u-kn-true")` after `create_collation("en", numeric: true)`. See [Collations in PostgreSQL](https://hexdocs.pm/localize_ecto/collations_in_postgres.html) for the caveats around nondeterministic collations.
+Query-time resolution carries the same `-u-` keywords, so a tailored collation created under its default name is found automatically — `collate(f.name, "en-u-kn-true")` after `create_collation("en", numeric: true)`. See [Collations in PostgreSQL](https://hexdocs.pm/localize_sql/collations_in_postgres.html) for the caveats around nondeterministic collations.
 
 ## Matching against a different server
 

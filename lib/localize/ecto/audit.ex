@@ -46,6 +46,45 @@ defmodule Localize.Ecto.Audit do
   WHERE datname = current_database()
   """
 
+  @typedoc """
+  Version drift of the database default collation, or `nil` when the
+  recorded version matches the collation library. The version values are
+  the opaque strings PostgreSQL stores.
+  """
+  @type database_collation_drift ::
+          %{collation: term(), stored_version: term(), actual_version: term()} | nil
+
+  @typedoc """
+  The server and application collation Unicode versions, and whether
+  they have drifted apart. The individual versions are read from the
+  server or derived from bundled data and are left as opaque terms.
+  """
+  @type unicode_versions :: %{
+          server: %{postgres: term(), unicode: term(), icu_unicode: term()},
+          application: %{cldr: String.t(), unicode: term()},
+          drift?: boolean()
+        }
+
+  @typedoc """
+  IANA time zones known to one of the server and the application but not
+  the other.
+  """
+  @type timezone_audit :: %{
+          unknown_to_server: [String.t()],
+          unknown_to_application: [String.t()]
+        }
+
+  @typedoc """
+  The combined result of every audit, as returned by `report/1`.
+  """
+  @type report :: %{
+          collation_drift: [map()],
+          database_collation_drift: database_collation_drift(),
+          unicode_versions: unicode_versions(),
+          timezone_audit: timezone_audit(),
+          ok?: boolean()
+        }
+
   @doc """
   Returns the collations whose recorded version differs from the collation library's current version.
 
@@ -98,7 +137,7 @@ defmodule Localize.Ecto.Audit do
       #=> nil
 
   """
-  @spec database_collation_drift(module()) :: map() | nil
+  @spec database_collation_drift(module()) :: database_collation_drift()
   def database_collation_drift(repo) do
     case repo.query!(@database_collation_sql, []) do
       %{rows: [[_collation, stored, actual]]}
@@ -156,7 +195,7 @@ defmodule Localize.Ecto.Audit do
       #   }
 
   """
-  @spec unicode_versions(module()) :: map()
+  @spec unicode_versions(module()) :: unicode_versions()
   def unicode_versions(repo) do
     %{rows: [[postgres_version]]} = repo.query!("SELECT current_setting('server_version')", [])
 
@@ -198,7 +237,7 @@ defmodule Localize.Ecto.Audit do
       #=> true
 
   """
-  @spec report(module()) :: map()
+  @spec report(module()) :: report()
   def report(repo) do
     collation_drift = collation_drift(repo)
     database_drift = database_collation_drift(repo)
@@ -235,7 +274,7 @@ defmodule Localize.Ecto.Audit do
       #=> []
 
   """
-  @spec timezone_audit(module()) :: map()
+  @spec timezone_audit(module()) :: timezone_audit()
   def timezone_audit(repo) do
     %{rows: rows} = repo.query!("SELECT name FROM pg_timezone_names", [])
     server_zones = rows |> List.flatten() |> MapSet.new()

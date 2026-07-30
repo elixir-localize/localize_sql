@@ -1,10 +1,10 @@
 # Collations in SQLite
 
-SQLite ships three collating sequences: `BINARY` (code point order), `NOCASE` (ASCII case folding only) and `RTRIM`. None of them sorts linguistically, and SQLite has no equivalent of PostgreSQL's ICU provider. This guide explains how `localize_ecto` adds ICU collation to SQLite, how it stays compatible with the PostgreSQL side of the library, and the operational consequences of using it.
+SQLite ships three collating sequences: `BINARY` (code point order), `NOCASE` (ASCII case folding only) and `RTRIM`. None of them sorts linguistically, and SQLite has no equivalent of PostgreSQL's ICU provider. This guide explains how `localize_sql` adds ICU collation to SQLite, how it stays compatible with the PostgreSQL side of the library, and the operational consequences of using it.
 
 ## The localize_icu extension
 
-`localize_ecto` ships a SQLite loadable extension, `localize_icu`, that links against [ICU](https://icu.unicode.org) and registers collations under the names PostgreSQL uses — `de-x-icu`, `sv-x-icu`, `zh-Hant-TW-x-icu`, `und-x-icu`. Because both databases now reach ICU through the same two calls — `uloc_forLanguageTag()` to turn the BCP 47 tag into an ICU locale, then `ucol_open()` — the same locale produces the same collation name and the same ordering on either database.
+`localize_sql` ships a SQLite loadable extension, `localize_icu`, that links against [ICU](https://icu.unicode.org) and registers collations under the names PostgreSQL uses — `de-x-icu`, `sv-x-icu`, `zh-Hant-TW-x-icu`, `und-x-icu`. Because both databases now reach ICU through the same two calls — `uloc_forLanguageTag()` to turn the BCP 47 tag into an ICU locale, then `ucol_open()` — the same locale produces the same collation name and the same ordering on either database.
 
 A loadable extension is the mechanism SQLite provides for this, and it is the mechanism SQLite's own [ICU extension](https://sqlite.org/src/dir/ext/icu) uses. SQLite opens the shared library itself and hands the entry point the database connection along with a table of API function pointers, so the extension never links against SQLite. A NIF cannot take its place: registering a collation needs the `sqlite3 *` connection handle, which the driver owns privately and does not expose.
 
@@ -32,10 +32,10 @@ The extension needs a C compiler and the ICU development libraries, which Postgr
 Install ICU — `brew install icu4c` on macOS, `apt-get install libicu-dev` on Debian or Ubuntu — then enable the build in `config/config.exs`:
 
 ```elixir
-config :localize_ecto, :sqlite_icu, true
+config :localize_sql, :sqlite_icu, true
 ```
 
-The key must be in `config.exs` rather than `runtime.exs`, because it is read at compile time to decide whether to run the C build. Setting `LOCALIZE_ECTO_SQLITE_ICU=true` in the environment does the same thing.
+The key must be in `config.exs` rather than `runtime.exs`, because it is read at compile time to decide whether to run the C build. Setting `LOCALIZE_SQL_SQLITE_ICU=true` in the environment does the same thing.
 
 Then load the extension on every connection. Both `Exqlite` and `Ecto.Adapters.SQLite3` accept `:load_extensions` and apply it to each pooled connection:
 
@@ -46,7 +46,7 @@ config :my_app, MyApp.Repo,
   load_extensions: Localize.Ecto.SQLite3.Extension.load_extensions()
 ```
 
-[Localize.Ecto.SQLite3.Extension.load_extensions/0](https://hexdocs.pm/localize_ecto/Localize.Ecto.SQLite3.Extension.html#load_extensions/0) returns an empty list when the extension was not built, so the same configuration is safe in an environment that has not opted in.
+[Localize.Ecto.SQLite3.Extension.load_extensions/0](https://hexdocs.pm/localize_sql/Localize.Ecto.SQLite3.Extension.html#load_extensions/0) returns an empty list when the extension was not built, so the same configuration is safe in an environment that has not opted in.
 
 ## An indexed database depends on the extension
 
@@ -108,10 +108,10 @@ In practice this means two things. Indexes built with an ICU collation should be
 
 Three things in `Localize.Ecto.Postgres` have no SQLite counterpart:
 
-* [Localize.Ecto.Migration.create_collation/2](https://hexdocs.pm/localize_ecto/Localize.Ecto.Migration.html#create_collation/2) — there is nothing to create, as described above. [Localize.Ecto.Migration.collated/2](https://hexdocs.pm/localize_ecto/Localize.Ecto.Migration.html#collated/2) does work on both and is what you use for indexes.
+* [Localize.Ecto.Migration.create_collation/2](https://hexdocs.pm/localize_sql/Localize.Ecto.Migration.html#create_collation/2) — there is nothing to create, as described above. [Localize.Ecto.Migration.collated/2](https://hexdocs.pm/localize_sql/Localize.Ecto.Migration.html#collated/2) does work on both and is what you use for indexes.
 
 * `at_time_zone/2` — SQLite has no time zone support and no timestamp type to apply one to.
 
 * `ts_match/2,3` — SQLite's full-text search is FTS5, which indexes a virtual table rather than evaluating an expression over an ordinary column. It is a genuinely different shape and is not wrapped by this library.
 
-* [Localize.Ecto.Audit](https://hexdocs.pm/localize_ecto/Localize.Ecto.Audit.html) and `mix localize.ecto.audit` are PostgreSQL-only, since SQLite stores no collation versions to drift.
+* [Localize.Ecto.Audit](https://hexdocs.pm/localize_sql/Localize.Ecto.Audit.html) and `mix localize.ecto.audit` are PostgreSQL-only, since SQLite stores no collation versions to drift.

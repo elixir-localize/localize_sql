@@ -1,14 +1,14 @@
-defmodule LocalizeEcto.MixProject do
+defmodule LocalizeSql.MixProject do
   use Mix.Project
 
   @version "1.0.0-rc.0"
-  @source_url "https://github.com/elixir-localize/localize_ecto"
+  @source_url "https://github.com/elixir-localize/localize_sql"
 
   def project do
     [
-      app: :localize_ecto,
+      app: :localize_sql,
       version: @version,
-      name: "Localize Ecto",
+      name: "Localize SQL",
       source_url: @source_url,
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -21,7 +21,16 @@ defmodule LocalizeEcto.MixProject do
       description: description(),
       package: package(),
       docs: docs(),
-      dialyzer: [plt_add_apps: [:mix, :ecto_sql]],
+      dialyzer: [
+        plt_add_apps: [:mix, :ecto_sql],
+        flags: [
+          :error_handling,
+          :unknown,
+          :underspecs,
+          :extra_return,
+          :missing_return
+        ]
+      ],
       # The audit mix task is CLI glue over `Localize.Ecto.Audit`
       # (which is covered); mix tasks are excluded from coverage
       # measurement as in the localize repo. The test repos are
@@ -34,9 +43,9 @@ defmodule LocalizeEcto.MixProject do
   end
 
   def description do
-    "Locale-aware ICU collation for Ecto queries on PostgreSQL and SQLite: COLLATE query " <>
-      "expressions resolved from Localize language tags, migration helpers for creating " <>
-      "collations, and an ICU collation extension for SQLite."
+    "SQL database support for Localize: locale-aware ICU collation for Ecto queries on " <>
+      "PostgreSQL and SQLite, tagged-decimal composite types with database-side sum, avg, " <>
+      "min and max aggregates and arithmetic operators, unit serialization, and range types."
   end
 
   def application do
@@ -59,7 +68,7 @@ defmodule LocalizeEcto.MixProject do
       # shared library in priv — cannot be published by accident.
       files: [
         "lib",
-        "priv/localize_ecto",
+        "priv/localize_sql",
         "c_src/localize_icu.c",
         "c_src/sqlite3.h",
         "c_src/sqlite3ext.h",
@@ -79,7 +88,7 @@ defmodule LocalizeEcto.MixProject do
       formatters: ["html", "markdown"],
       extras: [
         "README.md",
-        "guides/using_localize_ecto.md",
+        "guides/using_localize_sql.md",
         "guides/collations_in_postgres.md",
         "guides/collations_in_sqlite.md",
         "CHANGELOG.md",
@@ -97,9 +106,9 @@ defmodule LocalizeEcto.MixProject do
 
   # The SQLite ICU extension is opt-in: it needs a C toolchain and the
   # ICU development libraries, which PostgreSQL-only users have no
-  # reason to install. Enable it with the LOCALIZE_ECTO_SQLITE_ICU=true
+  # reason to install. Enable it with the LOCALIZE_SQL_SQLITE_ICU=true
   # environment variable or by setting
-  # `config :localize_ecto, :sqlite_icu, true` in config.exs. The config
+  # `config :localize_sql, :sqlite_icu, true` in config.exs. The config
   # key must be in config.exs, not runtime.exs, because it is read at
   # compile time to decide whether to include the :elixir_make compiler.
   defp maybe_elixir_make do
@@ -111,8 +120,8 @@ defmodule LocalizeEcto.MixProject do
   end
 
   defp sqlite_icu_enabled? do
-    String.downcase(System.get_env("LOCALIZE_ECTO_SQLITE_ICU", "false")) == "true" ||
-      Application.get_env(:localize_ecto, :sqlite_icu, false) == true
+    String.downcase(System.get_env("LOCALIZE_SQL_SQLITE_ICU", "false")) == "true" ||
+      Application.get_env(:localize_sql, :sqlite_icu, false) == true
   end
 
   defp deps do
@@ -121,7 +130,7 @@ defmodule LocalizeEcto.MixProject do
       {:localize, "~> 1.0-rc"},
       {:ecto_sql, "~> 3.12", optional: true},
       {:elixir_make, "~> 0.8", optional: true, runtime: false},
-      {:postgrex, "~> 0.20", only: [:dev, :test]},
+      {:postgrex, "~> 0.20", optional: true},
       {:exqlite, "~> 0.35", only: [:dev, :test]},
       {:ecto_sqlite3, "~> 0.21", only: [:dev, :test]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

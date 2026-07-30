@@ -33,7 +33,7 @@ defmodule Localize.Ecto.Collation do
 
   alias Localize.LanguageTag
 
-  @external_resource Path.join(__DIR__, "../../../priv/localize_ecto/pg_icu_collations.txt")
+  @external_resource Path.join(__DIR__, "../../../priv/localize_sql/pg_icu_collations.txt")
 
   @known_collations @external_resource
                     |> File.read!()

@@ -12,8 +12,8 @@ defmodule Localize.Ecto.SQLite3 do
   `localize_icu` extension this library ships. It is opt-in at build
   time and loaded on every pooled connection:
 
-      # mix.exs, or LOCALIZE_ECTO_SQLITE_ICU=true when compiling
-      config :localize_ecto, :sqlite_icu, true
+      # mix.exs, or LOCALIZE_SQL_SQLITE_ICU=true when compiling
+      config :localize_sql, :sqlite_icu, true
 
       # config/runtime.exs
       config :my_app, MyApp.Repo,

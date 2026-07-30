@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Renamed from `localize_ecto` to **`localize_sql`** — the package is about SQL databases (collations, serialization, migrations), not Ecto in general, which can be used without a database. The `Localize.Ecto.*` module namespace and the `mix localize.ecto.audit` task are unchanged; the app, config key (`:localize_sql`), env var (`LOCALIZE_SQL_SQLITE_ICU`) and `priv/localize_sql/` path are renamed.
+
+`localize_sql` grows from locale-aware collation into the SQL home for every Localize type — serializing the full set of Localize and Elixir data types and generating the tagged-decimal aggregate machinery `ex_money_sql` builds on.
+
+### Added
+
+* `Localize.Ecto.TaggedDecimal` and its `DDL` generate a PostgreSQL composite type with tag-guarded `sum`/`avg`/`min`/`max` aggregates and `+`/`-` operators for any tag-plus-decimal value; a mismatched tag (euros plus yen) raises in the database. `ex_money_sql` now builds `money_with_currency` on this rather than its own SQL.
+
+* Unit serialization, folded in from `localize_units_sql`: `Localize.Unit.Ecto.{Composite,Map}.Type` and the `Localize.UnitWithUsage` variants, `Localize.Unit.DDL` (now `sum`/`min`/`max`/`avg` for `cldr_unit` and `cldr_unit_with_usage`), and `mix localize.unit.gen.migration`.
+
+* Ecto types for the remaining data types: `Localize.Currency.Ecto.Type`, `Localize.LanguageTag.Ecto.Type`, `Localize.Territory.Ecto.Type` and `Localize.Script.Ecto.Type` (text); `Localize.Ecto.Type.IntegerRange` and `.DateRange` (`int8range`/`daterange`); `Localize.Duration.Ecto.Type` and `Localize.Ecto.Type.Duration` (`interval`).
+
+* `Localize.Ecto.Migration.Generator` renders and writes migrations for the SQL-generating mix tasks.
+
 ## [1.0.0-rc.0] - 2026-07-28
 
 The 1.0 release candidate. `localize_ecto` now supports SQLite as well as PostgreSQL, with the same locale resolving to the same collation on both.

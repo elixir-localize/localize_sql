@@ -21,9 +21,9 @@ defmodule Localize.Ecto.SQLite3.Extension do
   it is not built unless asked for. Enable it with either:
 
       # config/config.exs — must be config.exs, it is read at compile time
-      config :localize_ecto, :sqlite_icu, true
+      config :localize_sql, :sqlite_icu, true
 
-  or the `LOCALIZE_ECTO_SQLITE_ICU=true` environment variable when
+  or the `LOCALIZE_SQL_SQLITE_ICU=true` environment variable when
   compiling. On macOS, `brew install icu4c`; on Debian and Ubuntu,
   `apt-get install libicu-dev`.
 
@@ -68,7 +68,7 @@ defmodule Localize.Ecto.SQLite3.Extension do
   """
   @spec path() :: String.t()
   def path do
-    :localize_ecto
+    :localize_sql
     |> Application.app_dir("priv")
     |> Path.join(@extension)
   end
