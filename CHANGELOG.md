@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-07-31
 
 Renamed from `localize_ecto` to **`localize_sql`** — the package is about SQL databases (collations, serialization, migrations), not Ecto in general, which can be used without a database. The `Localize.Ecto.*` module namespace and the `mix localize.ecto.audit` task are unchanged; the app, config key (`:localize_sql`), env var (`LOCALIZE_SQL_SQLITE_ICU`) and `priv/localize_sql/` path are renamed.
 
@@ -18,7 +18,15 @@ Renamed from `localize_ecto` to **`localize_sql`** — the package is about SQL 
 
 * Ecto types for the remaining data types: `Localize.Currency.Ecto.Type`, `Localize.LanguageTag.Ecto.Type`, `Localize.Territory.Ecto.Type` and `Localize.Script.Ecto.Type` (text); `Localize.Ecto.Type.IntegerRange` and `.DateRange` (`int8range`/`daterange`); `Localize.Duration.Ecto.Type` and `Localize.Ecto.Type.Duration` (`interval`).
 
+* `Localize.Ecto.Range` provides query macros for PostgreSQL range columns — containment, overlap, adjacency, the bound accessors and the range aggregates — and `Localize.Ecto.Range.Migration` creates a time range type, the `btree_gist` extension and the `no_overlap/3` exclusion constraint that forbids overlapping bookings.
+
 * `Localize.Ecto.Migration.Generator` renders and writes migrations for the SQL-generating mix tasks.
+
+### Changed
+
+* Requires `localize ~> 1.0`. `postgrex` is an optional dependency; the range, duration and tagged-decimal composite types compile only when it is present, so a SQLite-only or collation-only consumer carries nothing extra.
+
+* The `localize_units_sql` package is superseded — its unit serialization is folded in here, and its `sum`-only aggregates are replaced by `sum`, `min`, `max` and `avg` for both `cldr_unit` and `cldr_unit_with_usage`.
 
 ## [1.0.0-rc.0] - 2026-07-28
 
