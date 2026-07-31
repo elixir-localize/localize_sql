@@ -22,6 +22,10 @@ Renamed from `localize_ecto` to **`localize_sql`** — the package is about SQL 
 
 * `Localize.Ecto.Migration.Generator` renders and writes migrations for the SQL-generating mix tasks.
 
+### Fixed
+
+* `Localize.UnitWithUsage.Ecto.Composite.Type.cast/1` now accepts a string-keyed map with no `"usage"` key, casting it as a unit without a usage. Only the atom-keyed form tolerated the key's absence, so an HTML form — which submits string keys — could not cast a unit unless it also submitted a usage.
+
 ### Changed
 
 * Requires `localize ~> 1.0`. `postgrex` is an optional dependency; the range, duration and tagged-decimal composite types compile only when it is present, so a SQLite-only or collation-only consumer carries nothing extra.

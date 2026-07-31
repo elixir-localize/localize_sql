@@ -84,6 +84,15 @@ if Code.ensure_loaded?(Ecto.Type) do
       end
     end
 
+    # A form need not submit a usage. The atom-keyed clause below has
+    # always tolerated its absence; this does the same for string keys,
+    # which is what an HTML form supplies. The guard is what stops a map
+    # that already carries an unmatched "usage" from recursing here.
+    def cast(%{"unit" => unit_name, "value" => value} = unit)
+        when not is_map_key(unit, "usage") do
+      cast(%{"unit" => unit_name, "value" => value, "usage" => nil})
+    end
+
     def cast(%{unit: unit_name, value: value} = unit) do
       cast(%{"unit" => unit_name, "value" => value, "usage" => Map.get(unit, :usage)})
     end

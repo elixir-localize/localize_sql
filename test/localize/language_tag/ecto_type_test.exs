@@ -24,11 +24,15 @@ defmodule Localize.LanguageTag.Ecto.TypeTest do
       assert Type.cast(tag) == {:ok, tag}
     end
 
-    test "canonicalizes so equivalent identifiers cast equal" do
+    # The tags are not identical — each preserves the identifier it was
+    # asked for in `requested_locale_id` — but they resolve to the same
+    # locale and therefore store identically.
+    test "canonicalizes so equivalent identifiers store identically" do
       {:ok, underscored} = Type.cast("en_US")
       {:ok, hyphenated} = Type.cast("en-US")
 
-      assert underscored == hyphenated
+      assert Type.dump(underscored) == Type.dump(hyphenated)
+      assert Type.dump(underscored) == {:ok, "en-US"}
     end
 
     test "casts nil" do
