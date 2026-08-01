@@ -13,14 +13,20 @@ defmodule Localize.Ecto.Audit do
   # The Unicode version each recent CLDR release is built on, used to
   # compare the application's collation expectations (Localize bundles
   # CLDR root collation data) with the server's ICU Unicode version.
+  #
+  # Read these from the `[UCA version = ...]` header of `common/uca/
+  # FractionalUCA.txt` at the corresponding CLDR release tag — that is
+  # the file Localize builds its collation table from. Do not use
+  # `common/dtd/ldmlSupplemental.dtd`, whose `unicodeVersion` attribute
+  # has been left at 16.0.0 since CLDR 46 (CLDR-17225).
   @cldr_unicode_versions %{
     43 => "15.0",
     44 => "15.1",
     45 => "15.1",
     46 => "16.0",
     47 => "16.0",
-    48 => "16.0",
-    49 => "17.0"
+    48 => "17.0",
+    49 => "18.0"
   }
 
   @drifted_collations_sql """
@@ -189,8 +195,8 @@ defmodule Localize.Ecto.Audit do
 
       Localize.Ecto.Audit.unicode_versions(MyApp.Repo)
       #=> %{
-      #     server: %{postgres: "17.4", unicode: "15.1", icu_unicode: "16.0"},
-      #     application: %{cldr: "48.2.2", unicode: "16.0"},
+      #     server: %{postgres: "18.4", unicode: "16.0", icu_unicode: "17.0"},
+      #     application: %{cldr: "48.2.2", unicode: "17.0"},
       #     drift?: false
       #   }
 

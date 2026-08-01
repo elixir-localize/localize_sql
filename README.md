@@ -58,12 +58,13 @@ Audit for MyApp.Repo
   Collation versions: no drift
   Database default collation: no drift
   Server: PostgreSQL 18.4, Unicode 16.0, ICU Unicode 17.0
-  Application: CLDR 48.2.2, Unicode 16.0
-  The server's ICU Unicode version differs from the application's — Elixir-side and SQL-side collation may order edge cases differently
+  Application: CLDR 48.2.2, Unicode 17.0
   Time zones: all application zones known to the server (100 server-only zones)
 ```
 
-That last warning is what a PostgreSQL 18 build linked against ICU 77 reports today: its ICU implements Unicode 17.0, while Localize 1.0 ships CLDR 48, which implements Unicode 16.0. The consequence is confined to characters added or re-weighted between the two Unicode versions; ordinary text orders identically on both sides. A gap in either direction is normal — CLDR and the ICU a server is built against advance on separate schedules — so treat the audit line as information about which edge cases may differ, not as a fault to fix.
+A server reports two Unicode versions and they are allowed to differ: the first is the version PostgreSQL itself was built against, which governs the builtin collations and case conversion, and the second belongs to the ICU library it links, which governs every `…-x-icu` collation. A PostgreSQL 18.4 build linked against ICU 77 reports 16.0 and 17.0 respectively. The application's figure is the Unicode version behind the CLDR release Localize bundles — CLDR 48 is Unicode 17.0 — and it is the ICU number it is compared against, since that is the side that decides how `COLLATE "de-x-icu"` orders a query. Those two agree in the run above, so no warning is printed.
+
+When they do diverge the audit says so, and the consequence is confined to characters added or re-weighted between the two Unicode versions; ordinary text orders identically on both sides. A gap in either direction is normal — CLDR and the ICU a server is built against advance on separate schedules — so treat the warning as information about which edge cases may differ, not as a fault to fix.
 
 ## Serializing Localize types
 
