@@ -6,26 +6,74 @@ Collation is the set of rules that determines how text sorts and compares. This 
 
 Every PostgreSQL database has a default collation, fixed at `CREATE DATABASE` time, that applies to every text comparison and sort that does not name a collation explicitly. It also determines the behavior of case conversion (`upper`, `lower`, `ILIKE`) through its character-classification (ctype) side.
 
-Our recommendation: make the database default the builtin `C.UTF-8` locale (PostgreSQL 17 and later), falling back to the `C` locale on older PostgreSQL releases, and apply linguistic collation explicitly in queries with `COLLATE` — which is exactly what this library does.
+Our recommendation: make the database default a builtin code-point collation — `PG_UNICODE_FAST` on PostgreSQL 18 and later, `PG_C_UTF8` on PostgreSQL 17, `C` on earlier releases — and apply linguistic collation explicitly in queries with `COLLATE`, which is exactly what this library does.
 
-* `C.UTF-8` (provider `builtin`, PostgreSQL 17+) sorts in Unicode code-point order — fast and permanently stable — while its ctype is full Unicode, so case conversion (`upper`, `lower`, `ILIKE`) works for all scripts without naming a collation.
+* `PG_UNICODE_FAST` (provider `builtin`, PostgreSQL 18+) sorts in Unicode code-point order and applies *full* Unicode case mapping, including the mappings that change a string's length. This is the recommended default because it is the only PostgreSQL collation whose case conversion agrees with Elixir's: both `upper('ß')` in the database and `String.upcase("ß")` in application code return `"SS"`.
+
+* `PG_C_UTF8` (provider `builtin`, PostgreSQL 17+) sorts identically, in code-point order, but applies *simple* one-to-one case mapping. `upper('ß')` returns `'ß'` unchanged, which disagrees with Elixir and with the Unicode default case conversion. Prefer it only on PostgreSQL 17, where `PG_UNICODE_FAST` is not yet available.
 
 * `C` is the fallback for PostgreSQL 16 and earlier. Sorting is plain byte order, equally fast and stable, but its ctype is ASCII-only: `upper('öl')` returns `öL` with the `ö` untouched. Where you need case conversion on non-ASCII text, apply a collation to the expression — `upper('öl' COLLATE "de-x-icu")` returns `ÖL`.
+
+All three sort text in the same order, and that order is also Elixir's. Erlang compares binaries byte by byte, and UTF-8 is designed so that byte order and code-point order coincide, so `Enum.sort/1` on a list of strings produces exactly the ordering a code-point database default produces:
+
+```elixir
+iex> Enum.sort(["a", "B", "ä", "Z", "_", "ß", "é"])
+["B", "Z", "_", "a", "ß", "ä", "é"]
+```
+
+```sql
+SELECT v FROM t ORDER BY v COLLATE "PG_UNICODE_FAST";
+-- B, Z, _, a, ß, ä, é
+```
+
+That correspondence is the practical reason to keep the database default non-linguistic: a page of results ordered in SQL and the same page re-sorted in the BEAM agree, without either side having to know which collation the other used. Neither ordering is linguistically meaningful — `Zebra` precedes `apple` in both — so when you want human-facing order you opt into it explicitly on whichever side is doing the sorting: `COLLATE "sv-x-icu"` in the database, `Localize.Collation.sort/2` in Elixir. Those two agree with each other as well, because both implement UCA over the same CLDR data.
+
+The choice between the three defaults is therefore entirely about case conversion, not about ordering or performance. Concretely:
+
+| expression | `C` | `PG_C_UTF8` | `PG_UNICODE_FAST` | Elixir |
+|---|---|---|---|---|
+| `upper('ß')` | `ß` | `ß` | `SS` | `SS` |
+| `upper('ﬁ')` | `ﬁ` | `ﬁ` | `FI` | `FI` |
+| `lower('ΑΣ')` | `ΑΣ` | `ασ` | `ας` | `ας` |
+
+Full case mapping has two consequences worth knowing before adopting it. `upper/1` can make a string longer, so a `varchar(n)` column sized against its input may overflow — `upper('ßßß')` is six characters, not three. And case conversion stops round-tripping: `lower(upper('ß'))` is `'ss'`, not `'ß'`. If you are using `upper/1` to compare case-insensitively, prefer a case-insensitive ICU collation for that comparison instead; that is what this library provides.
+
+Changing the default collation of an existing database requires rebuilding indexes whose contents depend on it, including any functional index over `upper/1` or `lower/1`. On a new database the choice is free.
 
 The reason for this recommendation is stability. A database default is fixed at `CREATE DATABASE` time, every index on text is built in its sort order, and a sort order that changes underneath an existing index silently corrupts the index's correctness. Each external collation provider carries exactly that risk:
 
 * Operating system releases. A libc default such as `en_US.UTF-8` sorts according to the OS locale data, which changes with OS upgrades — the classic cause of index corruption after a glibc update.
 
-* ICU releases. An ICU default would tie the database's sort order to the ICU library version, which changes as CLDR data evolves; PostgreSQL records collation versions and warns of mismatches, but the remedy is still reindexing the affected database.
+* ICU releases. An ICU default would tie the database's sort order to the ICU library version, which changes as CLDR data evolves; PostgreSQL records collation versions and warns of mismatches, but the remedy is still reindexing the affected database. This applies to the explicit `COLLATE "…-x-icu"` expressions this library generates as well, and the two sides can be a version apart: a PostgreSQL 18 build linked against ICU 77 implements Unicode 17.0, while Localize 1.0 ships CLDR 48 and so implements Unicode 16.0. `mix localize.ecto.audit` reports that gap. It affects only characters added or re-weighted between those Unicode versions, so ordinary text orders identically on both sides.
 
-* PostgreSQL releases. Byte order and code-point order are defined by Unicode itself, not by any library's tailoring data, so a `C` or `C.UTF-8` default behaves identically across PostgreSQL upgrades and never demands a reindex.
+* PostgreSQL releases. Byte order and code-point order are defined by Unicode itself, not by any library's tailoring data, so a `C`, `PG_C_UTF8` or `PG_UNICODE_FAST` default sorts identically across PostgreSQL upgrades and never demands a reindex on that account. One nuance: PostgreSQL versions the builtin collations (`collversion` is `1` today) because their *ctype* tracks the Unicode version PostgreSQL was built against, which advances with major releases — `SELECT unicode_version()` reports it. That can only affect case conversion, never sort order, so the exposure is limited to functional indexes over `upper/1` or `lower/1`. The `C` collation carries no version at all, since byte order cannot change.
 
 Scoping linguistic collation to query expressions confines the versioned, changeable part of collation to the places that opt into it — and any index created with an explicit ICU collation (see `Localize.Ecto.Migration.collated/2`) is a known, listed object that can be reindexed deliberately when the ICU version moves.
 
-Neither `C` nor `C.UTF-8` sorts linguistically — `Zebra` sorts before `apple` because `Z` has a smaller code point than `a`. That is the point of the division of labor: the default collation keeps storage and indexes fast and stable, and queries opt into linguistic ordering per expression:
+None of these defaults sorts linguistically, and that is the point of the division of labor: the default collation keeps storage and indexes fast and stable, while queries opt into linguistic ordering per expression:
 
 ```elixir
 from p in Product, order_by: collate(p.name, "sv")
+```
+
+### Setting the default
+
+The default is fixed when the database is created and cannot be altered afterwards, so choose it at `CREATE DATABASE` time:
+
+```sql
+CREATE DATABASE my_app
+  LOCALE_PROVIDER = builtin
+  BUILTIN_LOCALE = 'PG_UNICODE_FAST'
+  TEMPLATE = template0;
+```
+
+`TEMPLATE = template0` is required: `template1` carries its own collation, and PostgreSQL refuses to create a database with a different one from it. On PostgreSQL 17 substitute `BUILTIN_LOCALE = 'C.UTF-8'`; on 16 and earlier use `LC_COLLATE = 'C' LC_CTYPE = 'C'` and no provider clause.
+
+To confirm what an existing database uses:
+
+```sql
+SELECT datname, datlocprovider, datlocale FROM pg_database WHERE datname = current_database();
+-- my_app | b | PG_UNICODE_FAST
 ```
 
 ## Collation providers
@@ -36,7 +84,7 @@ PostgreSQL supports three collation providers:
 
 * `icu` — the [ICU library](https://icu.unicode.org), which implements the Unicode Collation Algorithm with the tailorings defined by [CLDR](https://cldr.unicode.org), the Unicode Common Locale Data Repository. ICU collations are consistent across operating systems and are versioned, so PostgreSQL can detect when a collation's underlying data has changed.
 
-* `builtin` (PostgreSQL 17+) — PostgreSQL's own provider offering `C` and `C.UTF-8` semantics with no external dependency.
+* `builtin` (PostgreSQL 17+) — PostgreSQL's own provider, with no external dependency and no exposure to OS or ICU upgrades. It offers `PG_C_UTF8` (code-point order, simple case mapping), `PG_UNICODE_FAST` (code-point order, full Unicode case mapping, PostgreSQL 18+) and `UCS_BASIC`. Because these are code-point collations, prefix `LIKE 'abc%'` uses a plain btree index without needing `text_pattern_ops`, exactly as under `C` — an ICU default would force a sequential scan there.
 
 This library uses the ICU provider exclusively, and the relationship to Localize is direct: both draw on the same CLDR data. Localize implements CLDR locale identification, language matching, and (in `Localize.Collation`) the same UCA + CLDR collation rules in Elixir. That shared foundation means the ordering PostgreSQL produces for `COLLATE "sv-x-icu"` agrees with the ordering `Localize.Collation.sort/2` produces for locale `sv` in application code — the same names sort the same way in the database and in the BEAM.
 

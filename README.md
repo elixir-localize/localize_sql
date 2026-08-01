@@ -57,10 +57,13 @@ $ mix localize.ecto.audit
 Audit for MyApp.Repo
   Collation versions: no drift
   Database default collation: no drift
-  Server: PostgreSQL 17.4, Unicode 15.1, ICU Unicode 16.0
+  Server: PostgreSQL 18.4, Unicode 16.0, ICU Unicode 17.0
   Application: CLDR 48.2.2, Unicode 16.0
+  The server's ICU Unicode version differs from the application's — Elixir-side and SQL-side collation may order edge cases differently
   Time zones: all application zones known to the server (100 server-only zones)
 ```
+
+That last warning is what a PostgreSQL 18 build linked against ICU 77 reports today: its ICU implements Unicode 17.0, while Localize 1.0 ships CLDR 48, which implements Unicode 16.0. The consequence is confined to characters added or re-weighted between the two Unicode versions; ordinary text orders identically on both sides. A gap in either direction is normal — CLDR and the ICU a server is built against advance on separate schedules — so treat the audit line as information about which edge cases may differ, not as a fault to fix.
 
 ## Serializing Localize types
 
