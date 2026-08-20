@@ -75,6 +75,7 @@ defmodule LocalizeSql.MixProject do
         "c_src/Makefile",
         "mix.exs",
         "README*",
+        "usage-rules.md",
         "CHANGELOG*",
         "LICENSE*"
       ]
