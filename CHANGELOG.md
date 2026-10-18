@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-11
+
+### Fixed
+
+* The CLDR-to-Unicode version table behind `Localize.Ecto.Audit.unicode_versions/1` recorded CLDR 48 as Unicode 16.0 and CLDR 49 as 17.0; the correct values are 17.0 and 18.0. `mix localize.ecto.audit` no longer reports spurious drift against a PostgreSQL 18 server linked against ICU 77, which is also Unicode 17.
+
+### Changed
+
+* The collation guide now recommends the builtin providers over `C.UTF-8` as a version ladder — `PG_UNICODE_FAST` on PostgreSQL 18+, `PG_C_UTF8` on 17, `C` earlier — and documents their equivalence to Elixir's own string ordering. `PG_UNICODE_FAST` keeps the prefix-`LIKE` index optimization that ICU collations forgo.
+
 ## [1.0.0] - 2026-07-31
 
 Renamed from `localize_ecto` to **`localize_sql`** — the package is about SQL databases (collations, serialization, migrations), not Ecto in general, which can be used without a database. The `Localize.Ecto.*` module namespace and the `mix localize.ecto.audit` task are unchanged; the app, config key (`:localize_sql`), env var (`LOCALIZE_SQL_SQLITE_ICU`) and `priv/localize_sql/` path are renamed.
