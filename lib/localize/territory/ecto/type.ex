@@ -20,9 +20,10 @@ defmodule Localize.Territory.Ecto.Type do
 
   `cast/1` accepts a code as an atom (`:US`) or a string (`"US"`, in any
   case), including UN M49 region codes as strings — `"001"` for the
-  world, `"150"` for Europe. Country-level M49 numbers such as `"840"`
-  are not CLDR territory codes (use `"US"`). Codes are validated against
-  `Localize.validate_territory/1`.
+  world, `"150"` for Europe. Codes are validated against
+  `Localize.validate_territory/1`, which resolves CLDR's territory
+  aliases, so a country-level M49 number such as `"840"` and an alias
+  such as `"UK"` cast to their code (`:US`, `:GB`).
 
   """
 

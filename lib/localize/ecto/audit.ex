@@ -29,6 +29,11 @@ defmodule Localize.Ecto.Audit do
     49 => "18.0"
   }
 
+  # CLDR's placeholder for a zone it cannot name. It is in Localize's
+  # inventory but is no IANA zone, so no server has it, and the time zone
+  # audit leaves it out.
+  @placeholder_zones ["Etc/Unknown"]
+
   @drifted_collations_sql """
   SELECT c.oid::bigint, c.collname, c.collversion, pg_collation_actual_version(c.oid)
   FROM pg_collation c
@@ -195,9 +200,9 @@ defmodule Localize.Ecto.Audit do
 
       Localize.Ecto.Audit.unicode_versions(MyApp.Repo)
       #=> %{
-      #     server: %{postgres: "18.4", unicode: "16.0", icu_unicode: "17.0"},
-      #     application: %{cldr: "48.2.2", unicode: "17.0"},
-      #     drift?: false
+      #     server: %{postgres: "18.6 (Homebrew)", unicode: "16.0", icu_unicode: "17.0"},
+      #     application: %{cldr: "49.0.0", unicode: "18.0"},
+      #     drift?: true
       #   }
 
   """
@@ -235,7 +240,7 @@ defmodule Localize.Ecto.Audit do
 
   ### Returns
 
-  * A map with `:collation_drift`, `:database_collation_drift`, `:unicode_versions`, `:timezone_audit` and `:ok?` — `true` when nothing needs attention.
+  * A map with `:collation_drift`, `:database_collation_drift`, `:unicode_versions`, `:timezone_audit` and `:ok?` — `true` when no collation has drifted and every application time zone is known to the server. A gap between the server's ICU Unicode version and the application's is reported in `:unicode_versions` but does not make `:ok?` false: CLDR and ICU advance on separate schedules, and the gap only affects edge-case ordering.
 
   ### Examples
 
@@ -257,7 +262,7 @@ defmodule Localize.Ecto.Audit do
       timezone_audit: timezone_audit,
       ok?:
         collation_drift == [] and is_nil(database_drift) and
-          not unicode_versions.drift? and timezone_audit.unknown_to_server == []
+          timezone_audit.unknown_to_server == []
     }
   end
 
@@ -272,7 +277,7 @@ defmodule Localize.Ecto.Audit do
 
   ### Returns
 
-  * A map with `:unknown_to_server` (canonical CLDR zones missing from `pg_timezone_names`) and `:unknown_to_application` (server zones absent from the CLDR inventory, excluding the `posix/`, `Etc/` and abbreviation-style entries PostgreSQL adds).
+  * A map with `:unknown_to_server` (canonical CLDR zones missing from `pg_timezone_names`, other than CLDR's `Etc/Unknown` placeholder) and `:unknown_to_application` (server zones absent from the CLDR inventory, excluding the `posix/`, `Etc/` and abbreviation-style entries PostgreSQL adds).
 
   ### Examples
 
@@ -285,7 +290,8 @@ defmodule Localize.Ecto.Audit do
     %{rows: rows} = repo.query!("SELECT name FROM pg_timezone_names", [])
     server_zones = rows |> List.flatten() |> MapSet.new()
 
-    application_zones = MapSet.new(Localize.DateTime.Timezone.known_timezones())
+    application_zones =
+      MapSet.new(Localize.DateTime.Timezone.known_timezones() -- @placeholder_zones)
 
     unknown_to_server =
       application_zones

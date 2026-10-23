@@ -1,7 +1,7 @@
 defmodule LocalizeSql.MixProject do
   use Mix.Project
 
-  @version "1.0.1"
+  @version "1.1.0"
   @source_url "https://github.com/elixir-localize/localize_sql"
 
   def project do
@@ -128,7 +128,7 @@ defmodule LocalizeSql.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.12"},
-      {:localize, "~> 1.0"},
+      {:localize, "~> 1.4"},
       {:ecto_sql, "~> 3.12", optional: true},
       {:elixir_make, "~> 0.8", optional: true, runtime: false},
       {:postgrex, "~> 0.20", optional: true},

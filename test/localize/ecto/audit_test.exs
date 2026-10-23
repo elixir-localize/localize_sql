@@ -76,6 +76,11 @@ defmodule Localize.Ecto.AuditTest do
       assert length(audit.unknown_to_server) < div(application_zones, 10)
       assert is_list(audit.unknown_to_application)
     end
+
+    # CLDR's placeholder zone is no IANA zone, so no server has it.
+    test "never reports CLDR's Etc/Unknown placeholder" do
+      refute "Etc/Unknown" in Audit.timezone_audit(TestRepo).unknown_to_server
+    end
   end
 
   describe "report/1" do
@@ -85,6 +90,17 @@ defmodule Localize.Ecto.AuditTest do
       assert Map.has_key?(report, :collation_drift)
       assert Map.has_key?(report, :unicode_versions)
       assert is_boolean(report.ok?)
+    end
+
+    # A Unicode gap between the server's ICU and the application's CLDR
+    # is a warning, not a failure: ok? depends on collation drift and
+    # unknown time zones alone, whatever the two Unicode versions are.
+    test "ok? does not depend on a Unicode version gap" do
+      report = Audit.report(TestRepo)
+
+      assert report.ok? ==
+               (report.collation_drift == [] and is_nil(report.database_collation_drift) and
+                  report.timezone_audit.unknown_to_server == [])
     end
   end
 end

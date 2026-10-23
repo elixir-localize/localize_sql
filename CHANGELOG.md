@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-24
+
+### Changed
+
+* Requires `localize ~> 1.4`, which bundles CLDR 49 (Unicode 18.0).
+
+* `Localize.Territory.Ecto.Type` casts a CLDR territory alias to its code, as `Localize.validate_territory/1` does: `"840"` casts to `:US` and `"UK"` to `:GB`.
+
+### Fixed
+
+* `mix localize.ecto.audit` no longer fails on a Unicode version gap between the server's ICU and the application's CLDR; it prints the warning and succeeds, as documented.
+
+* The time zone audit no longer reports CLDR's `Etc/Unknown` placeholder as unknown to the server, which made the audit fail on every server.
+
 ## [1.0.1] - 2026-08-11
 
 ### Fixed

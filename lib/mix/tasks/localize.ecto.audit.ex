@@ -18,7 +18,7 @@ if Code.ensure_loaded?(Ecto.Migration) do
 
     * Time zone names the application knows but the server does not (and the reverse).
 
-    Exits with a non-zero status when any collation drift is found, so the task can gate CI or deploys.
+    Exits with a non-zero status when any collation drift is found, or a time zone the application knows is missing from the server, so the task can gate CI or deploys. A gap between the server's ICU Unicode version and the application's is printed as a warning and does not fail the task.
 
     ## Command line options
 

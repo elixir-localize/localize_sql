@@ -16,8 +16,10 @@ defmodule Localize.CodeTypeTest do
       assert Territory.cast("150") == {:ok, :"150"}
     end
 
-    test "rejects a country-level M49 number, which CLDR keys by alpha-2" do
-      assert {:error, message: _} = Territory.cast("840")
+    test "casts a CLDR territory alias to its code" do
+      assert Territory.cast("840") == {:ok, :US}
+      assert Territory.cast("UK") == {:ok, :GB}
+      assert Territory.cast("GBR") == {:ok, :GB}
     end
 
     test "refuses a value that is not a code" do
