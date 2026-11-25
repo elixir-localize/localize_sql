@@ -128,7 +128,9 @@ defmodule LocalizeSql.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.12"},
-      {:localize, "~> 1.4"},
+      # TEMPORARY: Localize.Message.parse/2 is new in localize 1.10. Replace with
+      # {:localize, "~> 1.10"} once it is on hex, and do not push before then.
+      {:localize, path: "../localize"},
       {:ecto_sql, "~> 3.12", optional: true},
       {:elixir_make, "~> 0.8", optional: true, runtime: false},
       {:postgrex, "~> 0.20", optional: true},

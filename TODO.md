@@ -17,4 +17,10 @@ the annual October–November review window are in
 
 ## Blocked
 
+* [ ] **Release on localize 1.10** — `mix.exs` points at `../localize` for `Localize.Message.parse/2`, which `Localize.Message.Ecto.Type` needs; replace it with `{:localize, "~> 1.10"}` and do not push before. Blocked on localize ~> 1.10.
+
 * [ ] **Derive the Unicode version from Localize instead of a hand-maintained map** — Blocked on Localize exposing `unicode_version/0`, readable from the `[UCA version = ...]` line in `FractionalUCA.txt` at collation-table build time. Deletes `@cldr_unicode_versions` entirely.
+
+## Done
+
+* [x] **An Ecto type for an MF2 message** — `Localize.Message.Ecto.Type`, validated with `Localize.Message.parse/2` on cast and dump, loaded as written. From the Mishka CMS review, 2026-11-25.

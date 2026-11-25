@@ -103,6 +103,7 @@ The same machinery, [Localize.Ecto.TaggedDecimal](https://hexdocs.pm/localize_sq
 |---|---|---|
 | Currency | `Localize.Currency.Ecto.Type` | text |
 | Language tag | `Localize.LanguageTag.Ecto.Type` | text |
+| MF2 message, validated on write | `Localize.Message.Ecto.Type` | text |
 | Territory / Script | `Localize.Territory.Ecto.Type` / `Localize.Script.Ecto.Type` | text |
 | Time zone | `Localize.Ecto.Type.TimeZone` | text |
 | Unit of measure | `Localize.Unit.Ecto.Composite.Type` (also `Map`, and the `WithUsage` variants) | composite / jsonb |

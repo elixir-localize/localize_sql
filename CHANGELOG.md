@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — Unreleased
+
+### Added
+
+* `Localize.Message.Ecto.Type` stores an MF2 message as text, refusing on cast and dump one that is not valid MF2 or breaks a data-model rule. Its error is the fixed msgid `is not a valid MF2 message: %{detail}`, so `translate_error/1` can translate it.
+
+### Changed
+
+* Requires `localize ~> 1.10`, for `Localize.Message.parse/2`.
+
 ## [1.1.0] - 2026-10-24
 
 ### Changed
