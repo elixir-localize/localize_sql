@@ -33,6 +33,8 @@ defmodule Localize.Currency.Ecto.Type do
 
   alias Localize.Currency
 
+  @invalid_message "is not a known currency"
+
   @impl Ecto.Type
   def type do
     :string
@@ -50,7 +52,7 @@ defmodule Localize.Currency.Ecto.Type do
   def cast(currency) when is_atom(currency) or is_binary(currency) do
     case Currency.validate_currency(currency) do
       {:ok, code} -> {:ok, code}
-      {:error, exception} -> {:error, message: Exception.message(exception)}
+      {:error, _exception} -> {:error, message: @invalid_message, value: currency}
     end
   end
 

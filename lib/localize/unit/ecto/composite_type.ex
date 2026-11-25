@@ -45,34 +45,8 @@ if Code.ensure_loaded?(Ecto.Type) do
     end
 
     def cast(%{"unit" => unit_name, "value" => value})
-        when (is_binary(unit_name) or is_atom(unit_name)) and is_number(value) do
-      with decimal_value <- Decimal.new(value),
-           {:ok, unit} <- Localize.Unit.new(decimal_value, to_string(unit_name)) do
-        {:ok, unit}
-      else
-        :error -> {:error, message: "Couldn't cast value #{inspect(value)}"}
-        {:error, exception} -> {:error, message: Exception.message(exception)}
-      end
-    end
-
-    def cast(%{"unit" => unit_name, "value" => value})
-        when (is_binary(unit_name) or is_atom(unit_name)) and is_binary(value) do
-      with {value, ""} <- Decimal.parse(value),
-           {:ok, unit} <- Localize.Unit.new(value, to_string(unit_name)) do
-        {:ok, unit}
-      else
-        {:error, exception} -> {:error, message: Exception.message(exception)}
-        :error -> {:error, message: "Couldn't parse value #{inspect(value)}"}
-      end
-    end
-
-    def cast(%{"unit" => unit_name, "value" => %Decimal{} = value})
         when is_binary(unit_name) or is_atom(unit_name) do
-      case Localize.Unit.new(value, to_string(unit_name)) do
-        {:ok, unit} -> {:ok, unit}
-        {:error, exception} -> {:error, message: Exception.message(exception)}
-        :error -> {:error, message: "Couldn't cast value #{inspect(value)}"}
-      end
+      Localize.Unit.Ecto.Cast.cast(unit_name, value, [])
     end
 
     def cast(%{unit: unit_name, value: value}) do

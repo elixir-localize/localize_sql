@@ -39,14 +39,30 @@ defmodule Localize.Unit.Ecto.TypeCastTest do
   end
 
   describe "composite type cast/1 rejects bad input" do
-    test "an unknown unit name" do
-      assert {:error, message: message} = Composite.cast(%{"unit" => "sausages", "value" => "1"})
-      assert is_binary(message)
+    test "an unknown unit name, with a fixed msgid and the reason as a binding" do
+      assert {:error, message: message, detail: detail} =
+               Composite.cast(%{"unit" => "sausages", "value" => "1"})
+
+      assert message == "is not a valid unit of measure: %{detail}"
+      assert detail =~ "sausages"
     end
 
-    test "an unparseable value" do
-      assert {:error, message: message} = Composite.cast(%{"unit" => "meter", "value" => "abc"})
-      assert is_binary(message)
+    test "an unparseable value, with a fixed msgid and the value as a binding" do
+      assert Composite.cast(%{"unit" => "meter", "value" => "abc"}) ==
+               {:error, message: "is not a valid unit value", value: "abc"}
+    end
+
+    test "a value of the wrong type" do
+      assert Composite.cast(%{"unit" => "meter", "value" => [1, 2]}) ==
+               {:error, message: "is not a valid unit value", value: [1, 2]}
+
+      assert Composite.cast(%{"unit" => "meter", "value" => nil}) ==
+               {:error, message: "is not a valid unit value", value: nil}
+    end
+
+    test "a float value, without raising" do
+      assert {:ok, unit} = Composite.cast(%{"unit" => "meter", "value" => 2.5})
+      assert unit.value == Decimal.new("2.5")
     end
 
     test "a value that is not a map or unit" do
@@ -94,6 +110,13 @@ defmodule Localize.Unit.Ecto.TypeCastTest do
       assert Map.load(%{"unit" => "meter", "value" => "abc"}) == :error
     end
 
+    test "returns :error, never raises, for a stored value of another shape" do
+      assert Map.load(%{"unit" => "meter", "value" => [1]}) == :error
+      assert Map.load(%{"unit" => "meter", "value" => 2.5, "usage" => "road"}) == :error
+      assert Map.load("2.5 meters") == :error
+      assert UsageMap.load(%{"unit" => "meter"}) == :error
+    end
+
     test "dumping a non-unit fails" do
       assert Map.dump("2.5") == :error
     end
@@ -131,8 +154,13 @@ defmodule Localize.Unit.Ecto.TypeCastTest do
     end
 
     test "rejects an unknown unit and a non-map" do
-      assert {:error, message: _} =
+      assert {:error, message: "is not a valid unit of measure: %{detail}", detail: _detail} =
                UsageComposite.cast(%{"unit" => "sausages", "value" => "1", "usage" => "road"})
+
+      assert {:error, message: "is not a valid unit of measure: %{detail}", detail: detail} =
+               UsageComposite.cast(%{"unit" => "meter", "value" => "1", "usage" => "nope"})
+
+      assert detail =~ "nope"
 
       assert UsageComposite.cast(42) == :error
     end
@@ -238,7 +266,8 @@ defmodule Localize.Unit.Ecto.TypeCastTest do
     # The guard on the no-usage clause must not send a map that carries
     # an unmatched "usage" back through it.
     test "an unmatched value with a usage key errors rather than recursing" do
-      assert UsageMap.cast(%{"unit" => "meter", "value" => [1, 2], "usage" => "road"}) == :error
+      assert UsageMap.cast(%{"unit" => "meter", "value" => [1, 2], "usage" => "road"}) ==
+               {:error, message: "is not a valid unit value", value: [1, 2]}
     end
 
     test "round trips with usage preserved" do

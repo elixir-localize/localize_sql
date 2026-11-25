@@ -35,6 +35,8 @@ if Code.ensure_loaded?(Postgrex.Range) do
 
     use Ecto.Type
 
+    @invalid_message "is not an ascending date range with a step of one day"
+
     @impl Ecto.Type
     def type do
       :daterange
@@ -49,12 +51,12 @@ if Code.ensure_loaded?(Postgrex.Range) do
       if ascending?(range) do
         {:ok, range}
       else
-        {:error, message: unsupported_message(range)}
+        {:error, message: @invalid_message, value: range}
       end
     end
 
     def cast(%Date.Range{} = range) do
-      {:error, message: unsupported_message(range)}
+      {:error, message: @invalid_message, value: range}
     end
 
     def cast(_range) do
@@ -67,8 +69,20 @@ if Code.ensure_loaded?(Postgrex.Range) do
     end
 
     def load(%Postgrex.Range{lower: %Date{} = lower, upper: %Date{} = upper} = range) do
-      first = if range.lower_inclusive, do: lower, else: Date.add(lower, 1)
-      last = if range.upper_inclusive, do: upper, else: Date.add(upper, -1)
+      first =
+        if range.lower_inclusive do
+          lower
+        else
+          Date.add(lower, 1)
+        end
+
+      last =
+        if range.upper_inclusive do
+          upper
+        else
+          Date.add(upper, -1)
+        end
+
       {:ok, Date.range(first, last)}
     end
 
@@ -106,10 +120,6 @@ if Code.ensure_loaded?(Postgrex.Range) do
 
     defp ascending?(%Date.Range{first: first, last: last}) do
       Date.compare(first, last) != :gt
-    end
-
-    defp unsupported_message(range) do
-      "only ascending day-step date ranges can be stored, got #{inspect(range)}"
     end
   end
 end

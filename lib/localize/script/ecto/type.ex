@@ -24,6 +24,8 @@ defmodule Localize.Script.Ecto.Type do
 
   use Ecto.Type
 
+  @invalid_message "is not a known script"
+
   @impl Ecto.Type
   def type do
     :string
@@ -37,7 +39,7 @@ defmodule Localize.Script.Ecto.Type do
   def cast(script) when is_atom(script) or is_binary(script) do
     case Localize.validate_script(script) do
       {:ok, code} -> {:ok, code}
-      {:error, exception} -> {:error, message: Exception.message(exception)}
+      {:error, _exception} -> {:error, message: @invalid_message, value: script}
     end
   end
 

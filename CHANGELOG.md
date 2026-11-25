@@ -16,9 +16,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 * `equal?/2` on `Localize.Duration.Ecto.Type` and `Localize.Ecto.Type.Duration` — durations that store one interval, such as ninety minutes and one hour thirty, are equal.
 
+* The unit types cast a float value rather than raising, and their `load/1`, like `Localize.Ecto.Type.TimeZone.load/1`, returns `:error` for a stored value of another shape rather than raising.
+
 ### Changed
 
 * Requires `localize ~> 1.10`, for `Localize.Message.parse/2`.
+
+* Cast errors are fixed msgids with the value as a binding, such as `"is not a known territory"` with `:value` and `"is not a valid unit of measure: %{detail}"`, so `translate_error/1` can translate them.
 
 ## [1.1.0] - 2026-10-24
 

@@ -27,8 +27,7 @@ defmodule Localize.Currency.Ecto.TypeTest do
     end
 
     test "returns a message for an unknown code" do
-      assert {:error, message: message} = Type.cast("ZZZ")
-      assert is_binary(message)
+      assert Type.cast("ZZZ") == {:error, message: "is not a known currency", value: "ZZZ"}
     end
 
     test "refuses a value that is not a code" do

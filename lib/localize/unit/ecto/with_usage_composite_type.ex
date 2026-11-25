@@ -53,35 +53,9 @@ if Code.ensure_loaded?(Ecto.Type) do
     end
 
     def cast(%{"unit" => unit_name, "value" => value, "usage" => usage})
-        when (is_binary(unit_name) or is_atom(unit_name)) and is_number(value) do
-      with decimal_value <- Decimal.new(value),
-           {:ok, unit} <-
-             Localize.Unit.new(decimal_value, to_string(unit_name), usage: to_usage(usage)) do
-        {:ok, unit}
-      else
-        {:error, exception} -> {:error, message: Exception.message(exception)}
-        :error -> {:error, message: "Couldn't cast value #{inspect(value)}"}
-      end
-    end
-
-    def cast(%{"unit" => unit_name, "value" => value, "usage" => usage})
-        when (is_binary(unit_name) or is_atom(unit_name)) and is_binary(value) do
-      with {value, ""} <- Decimal.parse(value),
-           {:ok, unit} <-
-             Localize.Unit.new(value, to_string(unit_name), usage: to_usage(usage)) do
-        {:ok, unit}
-      else
-        {:error, exception} -> {:error, message: Exception.message(exception)}
-        :error -> {:error, message: "Couldn't parse value #{inspect(value)}"}
-      end
-    end
-
-    def cast(%{"unit" => unit_name, "value" => %Decimal{} = value, "usage" => usage})
         when is_binary(unit_name) or is_atom(unit_name) do
-      case Localize.Unit.new(value, to_string(unit_name), usage: to_usage(usage)) do
-        {:ok, unit} -> {:ok, unit}
-        {:error, exception} -> {:error, message: Exception.message(exception)}
-      end
+      options = Localize.Unit.Ecto.Cast.usage_options(usage)
+      Localize.Unit.Ecto.Cast.cast(unit_name, value, options)
     end
 
     # A form need not submit a usage. The atom-keyed clause below has
@@ -111,9 +85,5 @@ if Code.ensure_loaded?(Ecto.Type) do
     end
 
     def equal?(term1, term2), do: term1 == term2
-
-    defp to_usage(nil), do: nil
-    defp to_usage(""), do: nil
-    defp to_usage(usage), do: to_string(usage)
   end
 end

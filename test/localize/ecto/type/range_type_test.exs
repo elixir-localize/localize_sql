@@ -29,12 +29,13 @@ defmodule Localize.Ecto.Type.RangeTypeTest do
     end
 
     test "rejects a stepped range" do
-      assert {:error, message: message} = IntegerRange.cast(1..10//2)
-      assert message =~ "unit-step"
+      assert IntegerRange.cast(1..10//2) ==
+               {:error,
+                message: "is not an ascending integer range with a step of 1", value: 1..10//2}
     end
 
     test "rejects a descending (empty) range" do
-      assert {:error, message: _} = IntegerRange.cast(10..1//1)
+      assert {:error, message: _message, value: 10..1//1} = IntegerRange.cast(10..1//1)
     end
 
     test "casts nil and refuses non-ranges" do
@@ -103,10 +104,11 @@ defmodule Localize.Ecto.Type.RangeTypeTest do
     end
 
     test "rejects a descending range" do
-      assert {:error, message: message} =
-               DateRange.cast(Date.range(~D[2024-12-31], ~D[2024-01-01], -1))
+      range = Date.range(~D[2024-12-31], ~D[2024-01-01], -1)
 
-      assert message =~ "ascending"
+      assert DateRange.cast(range) ==
+               {:error,
+                message: "is not an ascending date range with a step of one day", value: range}
     end
 
     test "casts nil and refuses non-ranges" do

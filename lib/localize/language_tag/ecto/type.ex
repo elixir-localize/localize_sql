@@ -35,6 +35,8 @@ defmodule Localize.LanguageTag.Ecto.Type do
 
   alias Localize.LanguageTag
 
+  @invalid_message "is not a valid locale"
+
   @impl Ecto.Type
   def type do
     :string
@@ -52,7 +54,7 @@ defmodule Localize.LanguageTag.Ecto.Type do
   def cast(locale) when is_binary(locale) or is_atom(locale) do
     case Localize.validate_locale(locale) do
       {:ok, language_tag} -> {:ok, language_tag}
-      {:error, exception} -> {:error, message: Exception.message(exception)}
+      {:error, _exception} -> {:error, message: @invalid_message, value: locale}
     end
   end
 

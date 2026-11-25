@@ -30,36 +30,17 @@ if Code.ensure_loaded?(Ecto.Type) do
       :map
     end
 
-    def load(%{"unit" => unit_name, "value" => value, "usage" => usage}) when is_binary(value) do
-      with {value, ""} <- Decimal.parse(value),
-           {:ok, unit} <- new_unit(value, unit_name, usage) do
-        {:ok, unit}
-      else
-        _ -> :error
-      end
+    def load(%{"unit" => unit_name, "value" => value, "usage" => usage}) do
+      options = Localize.Unit.Ecto.Cast.usage_options(usage)
+      Localize.Unit.Ecto.Cast.load(unit_name, value, options)
     end
 
-    def load(%{"unit" => unit_name, "value" => value, "usage" => usage}) when is_integer(value) do
-      case new_unit(value, unit_name, usage) do
-        {:ok, unit} -> {:ok, unit}
-        _error -> :error
-      end
+    def load(%{"unit" => unit_name, "value" => value}) do
+      Localize.Unit.Ecto.Cast.load(unit_name, value, [])
     end
 
-    def load(%{"unit" => unit_name, "value" => value}) when is_binary(value) do
-      with {value, ""} <- Decimal.parse(value),
-           {:ok, unit} <- Localize.Unit.new(value, to_string(unit_name)) do
-        {:ok, unit}
-      else
-        _ -> :error
-      end
-    end
-
-    def load(%{"unit" => unit_name, "value" => value}) when is_integer(value) do
-      case Localize.Unit.new(value, to_string(unit_name)) do
-        {:ok, unit} -> {:ok, unit}
-        _error -> :error
-      end
+    def load(_value) do
+      :error
     end
 
     def dump(%Localize.Unit{name: unit_name, value: value, usage: usage}) do
@@ -73,14 +54,6 @@ if Code.ensure_loaded?(Ecto.Type) do
 
     def dump(_) do
       :error
-    end
-
-    defp new_unit(value, unit_name, usage) when usage in [nil, ""] do
-      Localize.Unit.new(value, to_string(unit_name))
-    end
-
-    defp new_unit(value, unit_name, usage) do
-      Localize.Unit.new(value, to_string(unit_name), usage: to_string(usage))
     end
   end
 end

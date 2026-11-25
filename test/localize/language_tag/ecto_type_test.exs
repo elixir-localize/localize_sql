@@ -42,8 +42,8 @@ defmodule Localize.LanguageTag.Ecto.TypeTest do
     end
 
     test "returns a message for an invalid locale" do
-      assert {:error, message: message} = Type.cast("this-is-not-a-locale")
-      assert is_binary(message)
+      assert Type.cast("this-is-not-a-locale") ==
+               {:error, message: "is not a valid locale", value: "this-is-not-a-locale"}
     end
 
     test "refuses a value that is neither a tag nor an identifier" do

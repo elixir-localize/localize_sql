@@ -20,8 +20,12 @@ defmodule Localize.Ecto.Type.TimeZoneTest do
     end
 
     test "rejects an unknown zone with a message" do
-      assert {:error, message: "is not a known IANA time zone"} =
+      assert {:error, message: "is not a known IANA time zone", value: "Mars/Olympus_Mons"} =
                TimeZone.cast("Mars/Olympus_Mons")
+    end
+
+    test "load/1 returns :error, never raises, for a stored value that is not a string" do
+      assert TimeZone.load(42) == :error
     end
 
     test "rejects non-strings" do

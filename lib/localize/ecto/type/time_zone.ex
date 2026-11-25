@@ -15,26 +15,42 @@ defmodule Localize.Ecto.Type.TimeZone do
   use Ecto.Type
 
   @canonical_key {__MODULE__, :canonical}
+  @invalid_message "is not a known IANA time zone"
 
   @impl Ecto.Type
-  def type, do: :string
+  def type do
+    :string
+  end
 
   @impl Ecto.Type
   def cast(zone) when is_binary(zone) do
     case canonicalize(zone) do
       {:ok, canonical} -> {:ok, canonical}
-      {:error, _exception} -> {:error, message: "is not a known IANA time zone"}
+      {:error, _exception} -> {:error, message: @invalid_message, value: zone}
     end
   end
 
-  def cast(_other), do: :error
+  def cast(_other) do
+    :error
+  end
 
   @impl Ecto.Type
-  def load(zone) when is_binary(zone), do: {:ok, zone}
+  def load(zone) when is_binary(zone) do
+    {:ok, zone}
+  end
+
+  def load(_other) do
+    :error
+  end
 
   @impl Ecto.Type
-  def dump(zone) when is_binary(zone), do: {:ok, zone}
-  def dump(_other), do: :error
+  def dump(zone) when is_binary(zone) do
+    {:ok, zone}
+  end
+
+  def dump(_other) do
+    :error
+  end
 
   @doc """
   Canonicalizes a time zone identifier to its canonical IANA name.

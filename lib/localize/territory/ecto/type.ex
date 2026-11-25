@@ -29,6 +29,8 @@ defmodule Localize.Territory.Ecto.Type do
 
   use Ecto.Type
 
+  @invalid_message "is not a known territory"
+
   @impl Ecto.Type
   def type do
     :string
@@ -42,7 +44,7 @@ defmodule Localize.Territory.Ecto.Type do
   def cast(territory) when is_atom(territory) or is_binary(territory) do
     case Localize.validate_territory(territory) do
       {:ok, code} -> {:ok, code}
-      {:error, exception} -> {:error, message: Exception.message(exception)}
+      {:error, _exception} -> {:error, message: @invalid_message, value: territory}
     end
   end
 

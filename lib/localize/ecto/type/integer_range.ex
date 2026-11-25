@@ -33,6 +33,8 @@ if Code.ensure_loaded?(Postgrex.Range) do
 
     use Ecto.Type
 
+    @invalid_message "is not an ascending integer range with a step of 1"
+
     @impl Ecto.Type
     def type do
       :int8range
@@ -48,8 +50,7 @@ if Code.ensure_loaded?(Postgrex.Range) do
     end
 
     def cast(%Range{} = range) do
-      {:error,
-       message: "only ascending unit-step integer ranges can be stored, got #{inspect(range)}"}
+      {:error, message: @invalid_message, value: range}
     end
 
     def cast(_range) do
@@ -63,8 +64,20 @@ if Code.ensure_loaded?(Postgrex.Range) do
 
     def load(%Postgrex.Range{lower: lower, upper: upper} = range)
         when is_integer(lower) and is_integer(upper) do
-      first = if range.lower_inclusive, do: lower, else: lower + 1
-      last = if range.upper_inclusive, do: upper, else: upper - 1
+      first =
+        if range.lower_inclusive do
+          lower
+        else
+          lower + 1
+        end
+
+      last =
+        if range.upper_inclusive do
+          upper
+        else
+          upper - 1
+        end
+
       {:ok, first..last}
     end
 

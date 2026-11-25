@@ -37,8 +37,7 @@ defmodule Localize.CodeTypeTest do
     end
 
     test "rejects an unknown territory" do
-      assert {:error, message: message} = Territory.cast(:ZZZZ)
-      assert is_binary(message)
+      assert Territory.cast(:ZZZZ) == {:error, message: "is not a known territory", value: :ZZZZ}
       assert Territory.load("ZZZZ") == :error
     end
 
@@ -73,8 +72,7 @@ defmodule Localize.CodeTypeTest do
     end
 
     test "rejects an unknown script" do
-      assert {:error, message: message} = Script.cast(:Xyzq)
-      assert is_binary(message)
+      assert Script.cast(:Xyzq) == {:error, message: "is not a known script", value: :Xyzq}
       assert Script.load("Xyzq") == :error
     end
   end
