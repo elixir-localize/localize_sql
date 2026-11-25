@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 * `Localize.LanguageTag.Ecto.Type.equal?/2` — two spellings of one locale, such as `"en-au"` and `"en-AU"`, are equal, so a changeset records no change between them.
 
+* `equal?/2` on `Localize.Duration.Ecto.Type` and `Localize.Ecto.Type.Duration` — durations that store one interval, such as ninety minutes and one hour thirty, are equal.
+
 ### Changed
 
 * Requires `localize ~> 1.10`, for `Localize.Message.parse/2`.

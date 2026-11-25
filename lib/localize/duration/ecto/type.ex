@@ -109,5 +109,41 @@ if Code.ensure_loaded?(Postgrex.Interval) do
     def dump(_duration) do
       :error
     end
+
+    @impl Ecto.Type
+    @doc """
+    Returns whether two durations store the same interval.
+
+    An `interval` keeps months, days and time, so ninety minutes is stored
+    and loaded as one hour and thirty minutes. The two are not `==`, but
+    they are the same interval, so a changeset that casts one over the
+    other records no change.
+
+    ### Arguments
+
+    * `left` and `right` are durations or `nil`.
+
+    ### Returns
+
+    * `true` when both dump to the same interval, or are `==`, or
+
+    * `false` otherwise.
+
+    ### Examples
+
+        iex> Localize.Duration.Ecto.Type.equal?(%Localize.Duration{minute: 90}, %Localize.Duration{hour: 1, minute: 30})
+        true
+
+        iex> Localize.Duration.Ecto.Type.equal?(%Localize.Duration{minute: 90}, %Localize.Duration{minute: 91})
+        false
+
+    """
+    @spec equal?(term(), term()) :: boolean()
+    def equal?(left, right) do
+      case {dump(left), dump(right)} do
+        {{:ok, same}, {:ok, same}} -> true
+        _different -> left == right
+      end
+    end
   end
 end

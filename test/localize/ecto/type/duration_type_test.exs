@@ -5,6 +5,9 @@ defmodule Localize.Ecto.Type.DurationTypeTest do
   alias Localize.Ecto.TestRepo
   alias Localize.Ecto.Type.Duration, as: ElixirDuration
 
+  doctest Localize.Duration.Ecto.Type, only: [equal?: 2]
+  doctest Localize.Ecto.Type.Duration, only: [equal?: 2]
+
   setup_all do
     TestRepo.query!("CREATE TABLE IF NOT EXISTS duration_rows (id serial, span interval)")
     on_exit(fn -> TestRepo.query("DROP TABLE IF EXISTS duration_rows") end)
@@ -95,6 +98,37 @@ defmodule Localize.Ecto.Type.DurationTypeTest do
       assert ElixirDuration.cast(duration) == {:ok, duration}
       assert ElixirDuration.cast(nil) == {:ok, nil}
       assert ElixirDuration.cast(3600) == :error
+    end
+  end
+
+  describe "equal?/2" do
+    test "is true for two durations that store one interval" do
+      assert LocalizeDuration.equal?(%Localize.Duration{month: 13}, %Localize.Duration{
+               year: 1,
+               month: 1
+             })
+
+      assert ElixirDuration.equal?(Duration.new!(minute: 90), Duration.new!(hour: 1, minute: 30))
+      assert ElixirDuration.equal?(Duration.new!(day: 7), Duration.new!(week: 1))
+      assert ElixirDuration.equal?(nil, nil)
+    end
+
+    test "keeps a month apart from thirty days, as PostgreSQL does" do
+      refute ElixirDuration.equal?(Duration.new!(month: 1), Duration.new!(day: 30))
+      refute LocalizeDuration.equal?(nil, %Localize.Duration{})
+    end
+
+    test "compares two values that do not dump by ==" do
+      assert ElixirDuration.equal?(42, 42)
+      refute ElixirDuration.equal?(42, "a week")
+    end
+
+    test "records no change in a changeset for the stored form of a duration" do
+      types = %{span: ElixirDuration}
+      data = %{span: Duration.new!(hour: 1, minute: 30)}
+
+      changeset = Ecto.Changeset.cast({data, types}, %{span: Duration.new!(minute: 90)}, [:span])
+      assert changeset.changes == %{}
     end
   end
 end
