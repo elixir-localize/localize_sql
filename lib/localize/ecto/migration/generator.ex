@@ -85,6 +85,20 @@ defmodule Localize.Ecto.Migration.Generator do
 
     * The path of the written file.
 
+    ### Examples
+
+    A migration-generating mix task calls it with the SQL a `DDL` module
+    renders:
+
+        Localize.Ecto.Migration.Generator.create_migration(
+          MyApp.Repo,
+          "add_cldr_unit",
+          up_sql,
+          down_sql,
+          Localize.Ecto.Migration.Generator.timestamp()
+        )
+        #=> "priv/repo/migrations/20260731090501_add_cldr_unit.exs"
+
     """
     @spec create_migration(module(), String.t(), String.t(), String.t(), String.t()) :: String.t()
     def create_migration(repo, name, up_sql, down_sql, timestamp) do
@@ -104,6 +118,11 @@ defmodule Localize.Ecto.Migration.Generator do
     ### Returns
 
     * The timestamp as a string, such as `"20260731090501"`.
+
+    ### Examples
+
+        iex> Localize.Ecto.Migration.Generator.timestamp() =~ ~r/\\A\\d{14}\\z/
+        true
 
     """
     @spec timestamp() :: String.t()

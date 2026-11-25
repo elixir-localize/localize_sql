@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] — Unreleased
+## [1.2.0] — 2026-11-26
 
 ### Added
 
 * `Localize.Message.Ecto.Type` stores an MF2 message as text, refusing on cast and dump one that is not valid MF2 or breaks a data-model rule. Its error is the fixed msgid `is not a valid MF2 message: %{detail}`, so `translate_error/1` can translate it.
+
+### Changed
+
+* Requires `localize ~> 1.10`, for `Localize.Message.parse/2`.
+
+* Cast errors are fixed msgids with the value as a binding, such as `"is not a known territory"` with `:value` and `"is not a valid unit of measure: %{detail}"`, so `translate_error/1` can translate them.
 
 ### Fixed
 
@@ -17,12 +23,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 * `equal?/2` on `Localize.Duration.Ecto.Type` and `Localize.Ecto.Type.Duration` — durations that store one interval, such as ninety minutes and one hour thirty, are equal.
 
 * The unit types cast a float value rather than raising, and their `load/1`, like `Localize.Ecto.Type.TimeZone.load/1`, returns `:error` for a stored value of another shape rather than raising.
-
-### Changed
-
-* Requires `localize ~> 1.10`, for `Localize.Message.parse/2`.
-
-* Cast errors are fixed msgids with the value as a binding, such as `"is not a known territory"` with `:value` and `"is not a valid unit of measure: %{detail}"`, so `translate_error/1` can translate them.
 
 ## [1.1.0] - 2026-10-24
 

@@ -164,7 +164,25 @@ defmodule Localize.Ecto.Postgres do
   @doc """
   Locale-aware full-text search match using the current locale.
 
-  See `ts_match/3`.
+  The text search configuration is resolved from `Localize.get_locale/0` when the query is built. See `ts_match/3`.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to the searched text.
+
+  * `query` is the user's search input, in `websearch_to_tsquery` syntax.
+
+  ### Returns
+
+  * A boolean query fragment for use in `where`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", where: ts_match(p.description, "wooden chair"), select: p.id
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro ts_match(expression, query) do
     build_ts_match(expression, query, quote(do: Localize.Ecto.TextSearch.config_for!()))
@@ -236,7 +254,23 @@ defmodule Localize.Ecto.Postgres do
   @doc """
   Locale-aware `lower()` using the collation of the current locale.
 
-  See `lower/2`.
+  The collation is resolved from `Localize.get_locale/0` when the query is built. See `lower/2` for how the collation determines the case mapping.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  ### Returns
+
+  * A query fragment `lower(expression COLLATE "collation")`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: lower(p.name)
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro lower(expression) do
     Builder.postgres_case(:lower, expression, quote(do: Localize.Ecto.Collation.resolve!()))
@@ -278,14 +312,50 @@ defmodule Localize.Ecto.Postgres do
   @doc """
   Locale-aware `upper()` using the collation of the current locale.
 
-  See `lower/2`.
+  The collation is resolved from `Localize.get_locale/0` when the query is built. See `upper/2` for how the collation determines the case mapping.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  ### Returns
+
+  * A query fragment `upper(expression COLLATE "collation")`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: upper(p.name)
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro upper(expression) do
     Builder.postgres_case(:upper, expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
-  Locale-aware `upper()`. See `lower/2` for the arguments and semantics.
+  Locale-aware `upper()`.
+
+  Under a Turkish collation `upper("i")` is the dotted "İ". See `lower/2` for how the collation determines the case mapping.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  * `locale_or_options` is a locale or keyword list as accepted by `collate/2`. A pinned expression (`^locale`) is also accepted.
+
+  ### Returns
+
+  * A query fragment `upper(expression COLLATE "collation")`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: upper(p.name, "tr")
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro upper(expression, locale_or_options) do
     locale_or_options = Builder.unpin(locale_or_options)
@@ -300,14 +370,50 @@ defmodule Localize.Ecto.Postgres do
   @doc """
   Locale-aware `initcap()` using the collation of the current locale.
 
-  See `lower/2`.
+  The collation is resolved from `Localize.get_locale/0` when the query is built. See `initcap/2` for how the collation determines the case mapping.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  ### Returns
+
+  * A query fragment `initcap(expression COLLATE "collation")`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: initcap(p.name)
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro initcap(expression) do
     Builder.postgres_case(:initcap, expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
-  Locale-aware `initcap()`. See `lower/2` for the arguments and semantics.
+  Locale-aware `initcap()`.
+
+  Each word's first letter is upper-cased and the rest lower-cased, by the locale's rules. See `lower/2` for how the collation determines the case mapping.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  * `locale_or_options` is a locale or keyword list as accepted by `collate/2`. A pinned expression (`^locale`) is also accepted.
+
+  ### Returns
+
+  * A query fragment `initcap(expression COLLATE "collation")`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: initcap(p.name, "nl")
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro initcap(expression, locale_or_options) do
     locale_or_options = Builder.unpin(locale_or_options)

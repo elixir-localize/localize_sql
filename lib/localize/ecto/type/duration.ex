@@ -121,7 +121,9 @@ if Code.ensure_loaded?(Postgrex.Interval) do
 
     ### Arguments
 
-    * `left` and `right` are durations or `nil`.
+    * `left` is a duration or `nil`.
+
+    * `right` is a duration or `nil`.
 
     ### Returns
 

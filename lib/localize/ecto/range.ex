@@ -130,8 +130,11 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type. A pinned expression (`^range`) is also
+  * `left` is an Ecto query expression that evaluates to a range. A
+    pinned expression (`^range`) is also accepted.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`. A pinned expression (`^range`) is also
     accepted.
 
   ### Returns
@@ -161,8 +164,10 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type.
+  * `left` is an Ecto query expression that evaluates to a range.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`.
 
   ### Returns
 
@@ -189,8 +194,10 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type.
+  * `left` is an Ecto query expression that evaluates to a range.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`.
 
   ### Returns
 
@@ -217,8 +224,10 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type.
+  * `left` is an Ecto query expression that evaluates to a range.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`.
 
   ### Returns
 
@@ -248,8 +257,10 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type.
+  * `left` is an Ecto query expression that evaluates to a range.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`.
 
   ### Returns
 
@@ -277,8 +288,10 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type.
+  * `left` is an Ecto query expression that evaluates to a range.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`.
 
   ### Returns
 
@@ -307,8 +320,10 @@ defmodule Localize.Ecto.Range do
 
   ### Arguments
 
-  * `left` and `right` are Ecto query expressions that evaluate to
-    ranges of the same type.
+  * `left` is an Ecto query expression that evaluates to a range.
+
+  * `right` is an Ecto query expression that evaluates to a range of
+    the same type as `left`.
 
   ### Returns
 

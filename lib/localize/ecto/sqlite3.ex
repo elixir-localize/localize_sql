@@ -151,7 +151,23 @@ defmodule Localize.Ecto.SQLite3 do
   @doc """
   Locale-aware `lower()` using the current locale.
 
-  See `lower/2`.
+  The locale is resolved from `Localize.get_locale/0` when the query is built. See `lower/2`.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  ### Returns
+
+  * A query fragment `lower(expression, 'collation')`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: lower(p.name)
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro lower(expression) do
     Builder.sqlite_case(:lower, expression, quote(do: Localize.Ecto.Collation.resolve!()))
@@ -193,14 +209,50 @@ defmodule Localize.Ecto.SQLite3 do
   @doc """
   Locale-aware `upper()` using the current locale.
 
-  See `lower/2`.
+  The locale is resolved from `Localize.get_locale/0` when the query is built. See `upper/2`.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  ### Returns
+
+  * A query fragment `upper(expression, 'collation')`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: upper(p.name)
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro upper(expression) do
     Builder.sqlite_case(:upper, expression, quote(do: Localize.Ecto.Collation.resolve!()))
   end
 
   @doc """
-  Locale-aware `upper()`. See `lower/2` for the arguments and semantics.
+  Locale-aware `upper()`.
+
+  Expands to the two-argument `upper(expression, locale)` the `localize_icu` extension registers, which maps case with ICU for the locale — under Turkish, `upper("i")` is the dotted "İ". See `lower/2`.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  * `locale_or_options` is a locale or keyword list as accepted by `collate/2`. A pinned expression (`^locale`) is also accepted.
+
+  ### Returns
+
+  * A query fragment `upper(expression, 'collation')`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: upper(p.name, "tr")
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro upper(expression, locale_or_options) do
     locale_or_options = Builder.unpin(locale_or_options)
@@ -215,7 +267,23 @@ defmodule Localize.Ecto.SQLite3 do
   @doc """
   Locale-aware title casing using the current locale.
 
-  See `initcap/2`.
+  The locale is resolved from `Localize.get_locale/0` when the query is built. See `initcap/2`.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  ### Returns
+
+  * A query fragment `title(expression, 'collation')`.
+
+  ### Examples
+
+      iex> import Ecto.Query
+      iex> query = from p in "products", select: initcap(p.name)
+      iex> match?(%Ecto.Query{}, query)
+      true
+
   """
   defmacro initcap(expression) do
     Builder.sqlite_case(:title, expression, quote(do: Localize.Ecto.Collation.resolve!()))
@@ -224,7 +292,17 @@ defmodule Localize.Ecto.SQLite3 do
   @doc """
   Locale-aware title casing, the equivalent of PostgreSQL's `initcap()`.
 
-  Expands to the `title(expression, locale)` function the `localize_icu` extension registers. SQLite has no `initcap`; the macro keeps the PostgreSQL name so queries port unchanged. See `lower/2` for the arguments and semantics.
+  Expands to the `title(expression, locale)` function the `localize_icu` extension registers. SQLite has no `initcap`; the macro keeps the PostgreSQL name so queries port unchanged. See `lower/2`.
+
+  ### Arguments
+
+  * `expression` is an Ecto query expression that evaluates to a string.
+
+  * `locale_or_options` is a locale or keyword list as accepted by `collate/2`. A pinned expression (`^locale`) is also accepted.
+
+  ### Returns
+
+  * A query fragment `title(expression, 'collation')`.
 
   ### Examples
 

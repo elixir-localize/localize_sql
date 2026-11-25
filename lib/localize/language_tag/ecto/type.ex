@@ -109,7 +109,9 @@ defmodule Localize.LanguageTag.Ecto.Type do
 
   ### Arguments
 
-  * `left` and `right` are language tags, locale identifiers or `nil`.
+  * `left` is a language tag, a locale identifier or `nil`.
+
+  * `right` is a language tag, a locale identifier or `nil`.
 
   ### Returns
 

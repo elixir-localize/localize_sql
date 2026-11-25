@@ -180,6 +180,8 @@ defmodule Localize.Ecto.Audit do
 
   """
   @spec remediation_sql(map()) :: [String.t()]
+  def remediation_sql(drift)
+
   def remediation_sql(%{name: name, indexes: indexes}) do
     reindexes = Enum.map(indexes, fn index -> ~s[REINDEX INDEX "#{index}"] end)
     reindexes ++ [~s[ALTER COLLATION "#{name}" REFRESH VERSION]]
