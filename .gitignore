@@ -29,3 +29,6 @@ localize_sql-*.tar
 /priv/localize_icu.dylib
 /priv/localize_icu.dll
 
+
+# Session context written by Claude; personal, never committed.
+CLAUDE.local.md
