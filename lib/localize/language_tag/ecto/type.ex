@@ -95,4 +95,41 @@ defmodule Localize.LanguageTag.Ecto.Type do
   def dump(_locale) do
     :error
   end
+
+  @impl Ecto.Type
+  @doc """
+  Returns whether two values are the same locale.
+
+  A language tag remembers the identifier it was parsed from, so `"en-au"`
+  and `"en-AU"` cast to tags that are not `==`. They are the same locale
+  and store the same text, so a changeset that casts one over the other
+  records no change.
+
+  ### Arguments
+
+  * `left` and `right` are language tags, locale identifiers or `nil`.
+
+  ### Returns
+
+  * `true` when both dump to the same stored value, or are `==`, or
+
+  * `false` otherwise.
+
+  ### Examples
+
+      iex> {:ok, left} = Localize.LanguageTag.Ecto.Type.cast("en-au")
+      iex> Localize.LanguageTag.Ecto.Type.equal?(left, Localize.LanguageTag.new!("en-AU"))
+      true
+
+      iex> Localize.LanguageTag.Ecto.Type.equal?(:en, :fr)
+      false
+
+  """
+  @spec equal?(term(), term()) :: boolean()
+  def equal?(left, right) do
+    case {dump(left), dump(right)} do
+      {{:ok, same}, {:ok, same}} -> true
+      _different -> left == right
+    end
+  end
 end

@@ -4,6 +4,8 @@ defmodule Localize.LanguageTag.Ecto.TypeTest do
   alias Localize.LanguageTag
   alias Localize.LanguageTag.Ecto.Type
 
+  doctest Localize.LanguageTag.Ecto.Type, only: [equal?: 2]
+
   describe "type/0" do
     test "stores as text" do
       assert Type.type() == :string
@@ -88,6 +90,34 @@ defmodule Localize.LanguageTag.Ecto.TypeTest do
 
       assert dumped == "de-DE-u-co-phonebk"
       assert loaded == cast
+    end
+  end
+
+  describe "equal?/2" do
+    test "is true for two spellings of one locale" do
+      {:ok, cast} = Type.cast("en-au")
+
+      assert Type.equal?(cast, LanguageTag.new!("en-AU"))
+      assert Type.equal?("en-au", :"en-AU")
+      assert Type.equal?(nil, nil)
+    end
+
+    test "is false for two locales, and for nil against a locale" do
+      refute Type.equal?(:en, :fr)
+      refute Type.equal?(nil, :en)
+    end
+
+    test "compares two values that do not dump by ==" do
+      assert Type.equal?(42, 42)
+      refute Type.equal?(42, "not a locale!")
+    end
+
+    test "records no change in a changeset for another spelling of the stored locale" do
+      types = %{locale: Type}
+      data = %{locale: LanguageTag.new!("en-AU")}
+
+      assert Ecto.Changeset.cast({data, types}, %{locale: "en-au"}, [:locale]).changes == %{}
+      assert Ecto.Changeset.cast({data, types}, %{locale: "fr"}, [:locale]).changes != %{}
     end
   end
 end

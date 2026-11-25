@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 * `Localize.Message.Ecto.Type` stores an MF2 message as text, refusing on cast and dump one that is not valid MF2 or breaks a data-model rule. Its error is the fixed msgid `is not a valid MF2 message: %{detail}`, so `translate_error/1` can translate it.
 
+### Fixed
+
+* `Localize.LanguageTag.Ecto.Type.equal?/2` — two spellings of one locale, such as `"en-au"` and `"en-AU"`, are equal, so a changeset records no change between them.
+
 ### Changed
 
 * Requires `localize ~> 1.10`, for `Localize.Message.parse/2`.
