@@ -75,6 +75,8 @@ defmodule Localize.Unit.DDL do
 
   @specs [@unit_spec, @unit_with_usage_spec]
 
+  @mismatch_function "cldr_unit_mismatch"
+
   @doc """
   Returns the SQL creating the `cldr_unit` and `cldr_unit_with_usage`
   composite types.
@@ -155,7 +157,7 @@ defmodule Localize.Unit.DDL do
           DDL.define_minmax_functions(spec),
           DDL.define_avg_function(spec)
         ]
-      end)
+      end) ++ [define_mismatch_function()]
     )
   end
 
@@ -183,13 +185,14 @@ defmodule Localize.Unit.DDL do
     ensure_postgres!(db_type)
 
     join(
-      Enum.flat_map(@specs, fn spec ->
-        [
-          DDL.drop_avg_function(spec),
-          DDL.drop_minmax_functions(spec),
-          DDL.drop_sum_function(spec)
-        ]
-      end)
+      [drop_mismatch_function()] ++
+        Enum.flat_map(@specs, fn spec ->
+          [
+            DDL.drop_avg_function(spec),
+            DDL.drop_minmax_functions(spec),
+            DDL.drop_sum_function(spec)
+          ]
+        end)
     )
   end
 
@@ -246,5 +249,35 @@ defmodule Localize.Unit.DDL do
 
   defp join(statements) do
     Enum.join(statements, @statement_separator)
+  end
+
+  # `cldr_unit_mismatch(expected, actual)` raises the aggregates' mismatch
+  # error. The unit aggregate query expressions in `Localize.Unit.Ecto.Query`
+  # compute with PostgreSQL's own aggregates and call it only when a set holds
+  # more than one unit. It is PARALLEL SAFE, so those queries keep their
+  # parallel plans.
+  defp define_mismatch_function do
+    """
+    CREATE OR REPLACE FUNCTION #{@mismatch_function}(expected varchar, actual varchar)
+    RETURNS cldr_unit
+    IMMUTABLE
+    PARALLEL SAFE
+    LANGUAGE plpgsql
+    AS $$
+      BEGIN
+        RAISE EXCEPTION #{sql_literal(@unit_spec.mismatch_message <> ", got %.")}, expected, actual
+          USING HINT = #{sql_literal(@unit_spec.mismatch_hint)},
+          ERRCODE = #{sql_literal(@unit_spec.errcode)};
+      END;
+    $$;
+    """
+  end
+
+  defp drop_mismatch_function do
+    "DROP FUNCTION IF EXISTS #{@mismatch_function}(varchar, varchar);"
+  end
+
+  defp sql_literal(string) do
+    "'" <> String.replace(string, "'", "''") <> "'"
   end
 end

@@ -153,6 +153,55 @@ defmodule Localize.Unit.Ecto.RangeQueryTest do
     assert values == ["2000", "500", "914.4"]
   end
 
+  describe "the unit aggregates" do
+    # The four meter rows: 500, 2000, 914.4 (3000 foot) and 8046.72 (5 mile).
+    defp meters do
+      from(m in Measurement,
+        where: unit_between(m.measure, ^unit("0", "meter"), ^unit("1000000", "meter"))
+      )
+    end
+
+    test "sum, avg, min and max load as units in the base unit" do
+      [sum, avg, min, max] =
+        meters()
+        |> select([m], [
+          unit_sum(m.measure),
+          unit_avg(m.measure),
+          unit_min(m.measure),
+          unit_max(m.measure)
+        ])
+        |> TestRepo.one()
+
+      assert sum.name == "meter"
+      assert Decimal.equal?(sum.value, Decimal.new("11461.12"))
+      assert Decimal.equal?(Decimal.round(avg.value, 2), Decimal.new("2865.28"))
+      assert Decimal.equal?(min.value, Decimal.new("500"))
+      assert Decimal.equal?(max.value, Decimal.new("8046.72"))
+    end
+
+    test "an empty set aggregates to nil" do
+      empty =
+        from(m in Measurement,
+          where: unit_between(m.measure, ^unit("1", "parsec"), ^unit("2", "parsec")),
+          select: unit_sum(m.measure)
+        )
+        |> TestRepo.one()
+
+      assert is_nil(empty)
+    end
+
+    test "a set of more than one unit raises" do
+      exception =
+        assert_raise Postgrex.Error, fn ->
+          TestRepo.one(from(m in Measurement, select: unit_sum(m.measure)))
+        end
+
+      assert exception.postgres.pg_code == "22033"
+
+      assert exception.postgres.message =~ "Incompatible unit names"
+    end
+  end
+
   test "cldr_unit_with_usage/1 compares within a usage" do
     {:ok, lower} = Localize.Unit.new(Decimal.new("10"), "kilometer", usage: "road")
 
