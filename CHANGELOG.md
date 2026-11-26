@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-11-26
+
+### Breaking changes
+
+* The unit Ecto types store a value in the base unit of its dimension, so `2 kilometer` is stored and loads as `2000 meter`. Existing rows load as stored; save each row again through its schema to convert it.
+
+### Added
+
+* `Localize.Unit.Ecto.Query` compares stored units: `cldr_unit/1` and `cldr_unit_with_usage/1` cast a bound in any unit of its dimension, and `unit_between/3` selects a range that an ordinary index on the column serves index-only.
+
+* `unit_sum/1`, `unit_avg/1`, `unit_min/1` and `unit_max/1` aggregate a `cldr_unit` column in parallel, about four times faster than the PL/pgSQL aggregates. They raise on mixed units through `cldr_unit_mismatch`, which `Localize.Unit.DDL.define_aggregate_functions/1` now creates.
+
 ## [1.2.0] — 2026-11-26
 
 ### Added

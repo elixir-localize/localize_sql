@@ -1,7 +1,7 @@
 defmodule LocalizeSql.MixProject do
   use Mix.Project
 
-  @version "1.2.0"
+  @version "2.0.0"
   @source_url "https://github.com/elixir-localize/localize_sql"
 
   def project do
@@ -97,6 +97,48 @@ defmodule LocalizeSql.MixProject do
       ],
       groups_for_extras: [
         Guides: ~r/guides\/.*/
+      ],
+      groups_for_modules: [
+        Collation: [
+          Localize.Ecto.Postgres,
+          Localize.Ecto.SQLite3,
+          Localize.Ecto.SQLite3.Extension,
+          Localize.Ecto.Collation,
+          Localize.Ecto.TextSearch,
+          Localize.Ecto.Migration,
+          Localize.Ecto.Audit
+        ],
+        "Ecto types": [
+          Localize.Currency.Ecto.Type,
+          Localize.LanguageTag.Ecto.Type,
+          Localize.Message.Ecto.Type,
+          Localize.Script.Ecto.Type,
+          Localize.Territory.Ecto.Type,
+          Localize.Ecto.Type.TimeZone,
+          Localize.Duration.Ecto.Type,
+          Localize.Ecto.Type.Duration
+        ],
+        Units: [
+          Localize.Unit.Ecto.Composite.Type,
+          Localize.Unit.Ecto.Map.Type,
+          Localize.UnitWithUsage.Ecto.Composite.Type,
+          Localize.UnitWithUsage.Ecto.Map.Type,
+          Localize.Unit.Ecto.Query,
+          Localize.Unit.DDL
+        ],
+        Ranges: [
+          Localize.Ecto.Range,
+          Localize.Ecto.Range.Migration,
+          Localize.Ecto.Type.IntegerRange,
+          Localize.Ecto.Type.DateRange
+        ],
+        "Tagged decimals": [
+          Localize.Ecto.TaggedDecimal,
+          Localize.Ecto.TaggedDecimal.DDL
+        ],
+        Internals: [
+          Localize.Ecto.Migration.Generator
+        ]
       ],
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]

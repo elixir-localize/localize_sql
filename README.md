@@ -86,7 +86,7 @@ A value cast from user input is validated and canonicalized on the way in — an
 
 ### Money and units: database-side aggregates
 
-A money amount or a unit of measure is a *tagged decimal* — a decimal paired with a tag (a currency code, a unit name) that is meaningless without it. `localize_sql` stores these as a PostgreSQL composite type and generates tag-guarded `sum`, `avg`, `min` and `max` aggregates and `+`/`-` operators, so the database itself refuses to add euros to yen or metres to feet:
+A money amount or a unit of measure is a *tagged decimal* — a decimal paired with a tag (a currency code, a unit name) that is meaningless without it. `localize_sql` stores these as a PostgreSQL composite type and generates tag-guarded `sum`, `avg`, `min` and `max` aggregates and `+`/`-` operators, so the database itself refuses to add euros to yen or metres to kilograms:
 
 ```elixir
 # in a migration
@@ -95,6 +95,17 @@ Localize.Unit.DDL.execute_each(Localize.Unit.DDL.define_aggregate_functions())
 
 # summing a column of like units works; mixing units raises in the database
 Repo.aggregate(from(m in Measurement), :sum, :distance)
+```
+
+A unit of measure is stored in the base unit of its dimension: `2 kilometer` is stored, and loads, as `2000 meter`, so values of one dimension share a unit and compare by value, and a database comparison needs no unit conversion. [Localize.Unit.Ecto.Query](https://hexdocs.pm/localize_sql/Localize.Unit.Ecto.Query.html) compares and aggregates them; a bound may be given in any unit of its dimension, and an ordinary index on the column serves the range:
+
+```elixir
+import Localize.Unit.Ecto.Query
+
+from m in Measurement, where: unit_between(m.distance, ^lower, ^upper)
+
+# PostgreSQL's own aggregates, in parallel; mixed units still raise
+from m in Measurement, select: unit_sum(m.distance)
 ```
 
 The same machinery, [Localize.Ecto.TaggedDecimal](https://hexdocs.pm/localize_sql/Localize.Ecto.TaggedDecimal.html), backs [ex_money_sql](https://hexdocs.pm/ex_money_sql), which builds its `money_with_currency` type and aggregates on `localize_sql` rather than defining its own.
@@ -119,7 +130,7 @@ Add `localize_sql` to your dependencies:
 ```elixir
 def deps do
   [
-    {:localize_sql, "~> 1.2"}
+    {:localize_sql, "~> 2.0"}
   ]
 end
 ```
@@ -200,4 +211,4 @@ If a PostgreSQL upgrade links a newer ICU library whose collation data changed �
 
 Copyright 2026 Kip Cole
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/elixir-localize/localize_sql/blob/v1.2.0/LICENSE.md).
+Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/elixir-localize/localize_sql/blob/v2.0.0/LICENSE.md).
