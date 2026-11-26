@@ -35,6 +35,23 @@ defmodule Localize.Unit.Ecto.Cast do
   end
 
   @doc false
+  # A unit in the base unit of its dimension, as the unit types store it:
+  # `2 kilometer` is `2000 meter`, `100 celsius` is `373.15 kelvin`. A
+  # comparison or an index on the stored value then needs no unit
+  # conversion, and only units of one dimension share a base unit, so
+  # values of different dimensions still cannot be mixed. The value is a
+  # decimal before converting, since an integer would convert to a float.
+  # `Localize.Unit.convert/2` drops the usage, so the source's is kept.
+  @spec base_unit(Localize.Unit.t()) :: {:ok, Localize.Unit.t()} | :error
+  def base_unit(%Localize.Unit{} = unit) do
+    with {:ok, value} <- decimal(unit.value),
+         {:ok, base_name} <- base_unit_name(unit.name),
+         {:ok, base} <- convert(%{unit | value: value}, base_name) do
+      {:ok, %{base | usage: unit.usage}}
+    end
+  end
+
+  @doc false
   @spec usage_options(term()) :: Keyword.t()
   def usage_options(usage) when usage in [nil, ""] do
     []
@@ -57,6 +74,20 @@ defmodule Localize.Unit.Ecto.Cast do
   defp loaded_unit(unit_name, value, options) do
     case Localize.Unit.new(value, to_string(unit_name), options) do
       {:ok, unit} -> {:ok, unit}
+      {:error, _exception} -> :error
+    end
+  end
+
+  defp base_unit_name(unit_name) do
+    case Localize.Unit.BaseUnit.base_unit(unit_name) do
+      {:ok, base_name} -> {:ok, base_name}
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp convert(unit, base_name) do
+    case Localize.Unit.convert(unit, base_name) do
+      {:ok, base} -> {:ok, base}
       {:error, _exception} -> :error
     end
   end

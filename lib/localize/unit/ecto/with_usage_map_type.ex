@@ -7,6 +7,18 @@ if Code.ensure_loaded?(Ecto.Type) do
     This is the required option for databases such as MySQL that do not
     support composite types.
 
+    A value is stored in the base unit of its dimension, as
+    `Localize.Unit.BaseUnit.base_unit/1` names it: `2 kilometer` is
+    stored, and loads, as `2000 meter`, and `100 celsius` as
+    `373.15 kelvin`. A comparison or an index on the stored value then
+    needs no unit conversion, and since only units of one dimension share a
+    base unit, values of different dimensions still cannot be mixed. A cast
+    value keeps the unit it was given until it is dumped, and equals its
+    base unit form, so a changeset records no change between them.
+
+    The usage is kept, so an application can show a loaded value in the
+    unit a locale prefers for that usage.
+
     In order to preserve precision, the value is serialized as a string since
     the JSON representation of a numeric value is either an integer or a
     float.
@@ -43,13 +55,19 @@ if Code.ensure_loaded?(Ecto.Type) do
       :error
     end
 
-    def dump(%Localize.Unit{name: unit_name, value: value, usage: usage}) do
-      {:ok,
-       %{
-         "unit" => to_string(unit_name),
-         "value" => to_string(value),
-         "usage" => usage && to_string(usage)
-       }}
+    def dump(%Localize.Unit{} = unit) do
+      case Localize.Unit.Ecto.Cast.base_unit(unit) do
+        {:ok, base} ->
+          {:ok,
+           %{
+             "unit" => base.name,
+             "value" => Decimal.to_string(base.value, :normal),
+             "usage" => base.usage && to_string(base.usage)
+           }}
+
+        :error ->
+          :error
+      end
     end
 
     def dump(_) do

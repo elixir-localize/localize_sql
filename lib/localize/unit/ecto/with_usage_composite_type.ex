@@ -8,6 +8,18 @@ if Code.ensure_loaded?(Ecto.Type) do
     unit value is stored as a decimal number and the unit usage is preserved
     across the round trip.
 
+    A value is stored in the base unit of its dimension, as
+    `Localize.Unit.BaseUnit.base_unit/1` names it: `2 kilometer` is
+    stored, and loads, as `2000 meter`, and `100 celsius` as
+    `373.15 kelvin`. A comparison or an index on the stored value then
+    needs no unit conversion, and since only units of one dimension share a
+    base unit, values of different dimensions still cannot be mixed. A cast
+    value keeps the unit it was given until it is dumped, and equals its
+    base unit form, so a changeset records no change between them.
+
+    The usage is kept, so an application can show a loaded value in the
+    unit a locale prefers for that usage.
+
     """
 
     @behaviour Ecto.Type
@@ -35,7 +47,10 @@ if Code.ensure_loaded?(Ecto.Type) do
     end
 
     def dump(%Localize.Unit{} = unit) do
-      {:ok, {to_string(unit.name), unit.value, unit.usage && to_string(unit.usage)}}
+      case Localize.Unit.Ecto.Cast.base_unit(unit) do
+        {:ok, base} -> {:ok, {base.name, base.value, base.usage && to_string(base.usage)}}
+        :error -> :error
+      end
     end
 
     def dump(_) do
